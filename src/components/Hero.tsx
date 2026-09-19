@@ -147,7 +147,7 @@ export default function Hero() {
             </a>
 
             <div className="flex items-center gap-1">
-              {/* <a
+              <a
                 href={links.github}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -156,14 +156,7 @@ export default function Hero() {
                 className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-transparent text-zinc-400 transition-colors hover:border-border hover:bg-surface hover:text-foreground"
               >
                 <FiGithub className="h-5 w-5" />
-              </a> */}
-              <span
-                aria-disabled="true"
-                title="Unavailable — recovery pending"
-                className="inline-flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-md text-zinc-600"
-              >
-                <FiGithub className="h-5 w-5" />
-              </span>
+              </a>
               {linkedInAvailable ? (
                 <a
                   href={links.linkedin}
