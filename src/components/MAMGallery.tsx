@@ -14,7 +14,7 @@ const images = [
 
 export default function MAMGallery() {
   return (
-    <section className="gallery-section" aria-labelledby="gallery-title">
+    <section className="gallery-section" id="gallery" data-scroll-section aria-labelledby="gallery-title">
       <div className="section-wrap">
         <div className="gallery-heading" data-reveal>
           <p className="section-kicker"><span>08</span> The people and places</p>

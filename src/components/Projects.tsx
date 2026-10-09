@@ -1,3 +1,5 @@
+import ProjectFrame from "@/components/ProjectFrame";
+
 type Project = {
   number: string;
   name: string;
@@ -8,6 +10,7 @@ type Project = {
   href: string;
   linkLabel: string;
   visual: "cv" | "vault" | "folio";
+  visualNote: string;
   featured?: boolean;
 };
 
@@ -24,6 +27,7 @@ const projects: Project[] = [
     href: "https://github.com/Kamyar-Ganjian/cv-builder",
     linkLabel: "Explore the repository",
     visual: "cv",
+    visualNote: "VISUAL STUDY / ATS-FIRST WORKSPACE",
     featured: true,
   },
   {
@@ -38,6 +42,7 @@ const projects: Project[] = [
     href: "https://vault-keevo.vercel.app",
     linkLabel: "Open Keevo",
     visual: "vault",
+    visualNote: "VISUAL STUDY / PERSONAL VAULT",
   },
   {
     number: "03",
@@ -51,6 +56,7 @@ const projects: Project[] = [
     href: "https://github.com/Kamyar-Ganjian/Portfolio",
     linkLabel: "View the source",
     visual: "folio",
+    visualNote: "VISUAL STUDY / PORTFOLIO SYSTEM",
   },
 ];
 
@@ -58,7 +64,7 @@ function ProjectVisual({ type }: { type: Project["visual"] }) {
   if (type === "cv") {
     return (
       <div className="cv-preview" aria-hidden="true">
-        <div className="cv-window-bar"><i /><i /><i /><span>resume.workspace</span><b>ATS REVIEW</b></div>
+        <div className="cv-window-bar"><i /><i /><i /><span>CV BUILDER / PRODUCT STUDY</span><b>ATS REVIEW</b></div>
         <div className="cv-window-body">
           <div className="cv-sidebar"><span>DOCUMENT</span><b>Content</b><b>Design</b><b>Job match</b><b>ATS check</b><span className="cv-side-foot">SAVED LOCALLY</span></div>
           <div className="cv-paper"><div className="cv-paper-name">RESUME PREVIEW</div><div className="cv-paper-subtitle">ATS-friendly · single-column</div><i className="cv-paper-rule" /><span className="cv-paper-heading">EXPERIENCE</span><b /><b className="short" /><b /><span className="cv-paper-heading">SKILLS</span><div className="cv-keywords"><i /><i /><i /></div><b className="short" /></div>
@@ -92,10 +98,11 @@ function ProjectVisual({ type }: { type: Project["visual"] }) {
 function ProjectCard({ project, index }: { project: Project; index: number }) {
   return (
     <article className={`project-card${project.featured ? " project-card--featured" : ""}`} data-reveal data-reveal-delay={String(index * 90)}>
-      <div className={`project-visual project-visual--${project.visual}`} aria-hidden="true">
+      <ProjectFrame className={`project-visual project-visual--${project.visual}`}>
         <ProjectVisual type={project.visual} />
+        <span className="project-visual-note">{project.visualNote}</span>
         <span className="project-number">{project.number} / 03</span>
-      </div>
+      </ProjectFrame>
       <div className="project-copy">
         <p className="project-descriptor">{project.descriptor}</p>
         <h3>{project.name}</h3>
@@ -114,7 +121,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
 
 export default function Projects() {
   return (
-    <section className="projects-section section-wrap" id="work" aria-labelledby="work-title">
+    <section className="projects-section section-wrap" id="work" data-scroll-section aria-labelledby="work-title">
       <div className="section-heading" data-reveal>
         <p className="section-kicker"><span>02</span> Selected work</p>
         <div><h2 id="work-title">Useful things,<br /><em>thoughtfully built.</em></h2>

@@ -4,7 +4,7 @@ export default function IndustrialIntegration() {
   const integration = profile.industrialIntegration;
 
   return (
-    <section className="integration-section section-wrap" aria-labelledby="integration-title">
+    <section className="integration-section section-wrap" id="integration" data-scroll-section aria-labelledby="integration-title">
       <div className="integration-count" data-reveal><span>CONNECTED TO ERP</span><strong>×{integration.count}</strong><span>INDUSTRIAL SCALES</span></div>
       <div className="integration-copy" data-reveal data-reveal-delay="90">
         <p className="section-kicker"><span>06</span> Beyond the browser</p>

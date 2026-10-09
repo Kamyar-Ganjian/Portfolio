@@ -67,6 +67,7 @@ export default function SystemNetwork() {
     let frame = 0;
     let visible = true;
     let reducedMotion = motionPreference.matches;
+    let scrollProgress = 0;
     const motionStartedAt = performance.now();
 
     const resize = () => {
@@ -88,7 +89,9 @@ export default function SystemNetwork() {
 
       const centerX = width * 0.51;
       const centerY = height * 0.49;
-      const radius = Math.min(width, height) * 0.42;
+      const morph = reducedMotion ? 0 : scrollProgress * scrollProgress * (3 - 2 * scrollProgress);
+      scene.style.setProperty("--network-morph", morph.toFixed(3));
+      const radius = Math.min(width, height) * 0.42 * (1 - morph * 0.08);
       const elapsed = reducedMotion ? 0.46 : 0.46 + (time - motionStartedAt) * 0.000085;
       const pointerTurn = point.active ? 0.19 : 0;
       const turnY = elapsed + point.x * pointerTurn;
@@ -97,16 +100,19 @@ export default function SystemNetwork() {
       const sinY = Math.sin(turnY);
       const cosX = Math.cos(turnX);
       const sinX = Math.sin(turnX);
-      const projected = nodes.map((node) => {
+      const projected = nodes.map((node, index) => {
         const x = node.x * cosY - node.z * sinY;
         const z = node.x * sinY + node.z * cosY;
         const y = node.y * cosX - z * sinX;
         const depth = node.y * sinX + z * cosX;
-        const perspective = 1 / (1.8 - depth * 0.48);
+        const layer = ((index % 5) - 2) * 0.16;
+        const composedY = y * (1 - morph * 0.62) + layer * morph;
+        const composedDepth = depth * (1 - morph * 0.82);
+        const perspective = 1 / (1.8 - composedDepth * 0.48);
         return {
-          x: centerX + x * radius * perspective,
-          y: centerY + y * radius * perspective,
-          z: depth,
+          x: centerX + x * radius * (1 - morph * 0.08) * perspective,
+          y: centerY + composedY * radius * perspective,
+          z: composedDepth,
           accent: node.accent,
         };
       });
@@ -114,17 +120,17 @@ export default function SystemNetwork() {
       // Quiet orbit guides provide a sense of depth without dominating the network.
       context.save();
       context.translate(centerX, centerY);
-      context.rotate(-0.29 + point.x * 0.07);
+      context.rotate(-0.29 * (1 - morph) + point.x * 0.07);
       context.setLineDash([2, 9]);
       context.strokeStyle = "rgba(206, 255, 61, 0.18)";
       context.lineWidth = 1;
       context.beginPath();
-      context.ellipse(0, 0, radius * 1.16, radius * 0.43, 0, 0, Math.PI * 2);
+      context.ellipse(0, 0, radius * 1.16, radius * (0.43 - morph * 0.15), 0, 0, Math.PI * 2);
       context.stroke();
       context.rotate(1.1);
       context.strokeStyle = "rgba(215, 224, 212, 0.12)";
       context.beginPath();
-      context.ellipse(0, 0, radius * 1.08, radius * 0.34, 0, 0, Math.PI * 2);
+      context.ellipse(0, 0, radius * 1.08, radius * (0.34 + morph * 0.08), 0, 0, Math.PI * 2);
       context.stroke();
       context.restore();
 
@@ -212,6 +218,10 @@ export default function SystemNetwork() {
       point.y = 0;
     };
 
+    const handleScroll = () => {
+      scrollProgress = Math.max(0, Math.min(window.scrollY / (window.innerHeight * 0.68), 1));
+    };
+
     const handleMotionChange = (event: MediaQueryListEvent) => {
       reducedMotion = event.matches;
       startAnimation();
@@ -230,10 +240,13 @@ export default function SystemNetwork() {
     visibilityObserver.observe(scene);
     canvas.addEventListener("pointermove", handlePointerMove, { passive: true });
     canvas.addEventListener("pointerleave", handlePointerLeave);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     motionPreference.addEventListener("change", handleMotionChange);
     document.addEventListener("visibilitychange", handleVisibility);
+    handleScroll();
     resize();
     startAnimation();
+    scene.dataset.ready = "true";
 
     return () => {
       window.cancelAnimationFrame(frame);
@@ -241,6 +254,7 @@ export default function SystemNetwork() {
       visibilityObserver.disconnect();
       canvas.removeEventListener("pointermove", handlePointerMove);
       canvas.removeEventListener("pointerleave", handlePointerLeave);
+      window.removeEventListener("scroll", handleScroll);
       motionPreference.removeEventListener("change", handleMotionChange);
       document.removeEventListener("visibilitychange", handleVisibility);
     };

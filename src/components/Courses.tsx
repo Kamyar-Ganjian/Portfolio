@@ -2,7 +2,7 @@ import { profile } from "@/data/profile";
 
 export default function Courses() {
   return (
-    <section className="courses-section section-wrap" aria-labelledby="courses-title">
+    <section className="courses-section section-wrap" id="courses" data-scroll-section aria-labelledby="courses-title">
       <div className="courses-heading" data-reveal><p className="section-kicker"><span>12</span> Continuous learning</p><h2 id="courses-title">Study, alongside<br /><em>the work.</em></h2></div>
       <div className="course-list">
         {profile.courses.map((course) => (

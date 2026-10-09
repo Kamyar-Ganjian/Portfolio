@@ -2,7 +2,7 @@ import { profile } from "@/data/profile";
 
 export default function Contact() {
   return (
-    <section className="contact-section" id="contact" aria-labelledby="contact-title">
+    <section className="contact-section" id="contact" data-scroll-section aria-labelledby="contact-title">
       <div className="section-wrap contact-inner">
         <p className="section-kicker" data-reveal><span>13</span> Start a conversation</p>
         <div className="contact-main" data-reveal>

@@ -44,7 +44,7 @@ export default function Experience() {
   const role = profile.experience[0];
 
   return (
-    <section className="experience-section section-wrap" id="experience" aria-labelledby="experience-title">
+    <section className="experience-section section-wrap" id="experience" data-scroll-section aria-labelledby="experience-title">
       <div className="experience-heading" data-reveal>
         <p className="section-kicker"><span>03</span> In production</p>
         <p className="eyebrow experience-period">SEP 2024 <span>—</span> PRESENT</p>

@@ -1,6 +1,6 @@
 export default function Architecture() {
   return (
-    <section className="architecture-section" id="architecture" aria-labelledby="architecture-title">
+    <section className="architecture-section" id="architecture" data-scroll-section aria-labelledby="architecture-title">
       <div className="section-wrap architecture-inner">
         <div className="architecture-intro" data-reveal>
           <p className="section-kicker"><span>04</span> Systems thinking</p>

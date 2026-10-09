@@ -2,7 +2,7 @@ import { profile } from "@/data/profile";
 
 export default function Education() {
   return (
-    <section className="education-section section-wrap" id="education" aria-labelledby="education-title">
+    <section className="education-section section-wrap" id="education" data-scroll-section aria-labelledby="education-title">
       <div className="education-heading" data-reveal>
         <p className="section-kicker"><span>10</span> Study &amp; foundations</p>
         <h2 id="education-title">Building the<br /><em>next layer.</em></h2>

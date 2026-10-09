@@ -32,7 +32,7 @@ const groups = [
 
 export default function Skills() {
   return (
-    <section className="skills-section section-wrap" id="skills" aria-labelledby="skills-title">
+    <section className="skills-section section-wrap" id="skills" data-scroll-section aria-labelledby="skills-title">
       <div className="section-heading" data-reveal>
         <p className="section-kicker"><span>09</span> Technical toolkit</p>
         <div><h2 id="skills-title">Breadth with<br /><em>a point of view.</em></h2>

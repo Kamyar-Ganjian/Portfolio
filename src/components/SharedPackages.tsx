@@ -2,7 +2,7 @@ import { profile } from "@/data/profile";
 
 export default function SharedPackages() {
   return (
-    <section className="packages-section section-wrap" aria-labelledby="packages-title">
+    <section className="packages-section section-wrap" id="packages" data-scroll-section aria-labelledby="packages-title">
       <div className="packages-heading" data-reveal>
         <p className="section-kicker"><span>07</span> Shared foundations</p>
         <div><h2 id="packages-title">Build once.<br /><em>Make it useful everywhere.</em></h2>

@@ -4,7 +4,7 @@ export default function ErpDomains() {
   const domains = profile.experience[0].erpDomains;
 
   return (
-    <section className="erp-domains" aria-labelledby="erp-domains-title">
+    <section className="erp-domains" id="erp-domains" data-scroll-section aria-labelledby="erp-domains-title">
       <div className="section-wrap">
         <div className="erp-domains-heading" data-reveal>
           <div><p className="section-kicker"><span>05</span> Business domains</p><h2 id="erp-domains-title">A connected enterprise.</h2></div>

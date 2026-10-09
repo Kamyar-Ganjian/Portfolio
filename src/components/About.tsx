@@ -3,7 +3,7 @@ import { profile } from "@/data/profile";
 
 export default function About() {
   return (
-    <section className="about-section section-wrap" id="about" aria-labelledby="about-title">
+    <section className="about-section section-wrap" id="about" data-scroll-section aria-labelledby="about-title">
       <div className="section-meta" data-reveal><span>01</span><span>Profile / perspective</span></div>
       <div className="about-grid">
         <div className="about-copy" data-reveal>
