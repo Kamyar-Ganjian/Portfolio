@@ -1,6 +1,7 @@
 import Hero from "@/components/Hero";
 import Metrics from "@/components/Metrics";
 import About from "@/components/About";
+import Projects from "@/components/Projects";
 import Experience from "@/components/Experience";
 import MAMGallery from "@/components/MAMGallery";
 import Architecture from "@/components/Architecture";
@@ -19,12 +20,13 @@ export default function Home() {
       <Hero />
       <Metrics />
       <About />
+      <Projects />
       <Experience />
-      <MAMGallery />
       <Architecture />
       <ErpDomains />
       <IndustrialIntegration />
       <SharedPackages />
+      <MAMGallery />
       <Skills />
       <Education />
       <Direction />

@@ -1,84 +1,26 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { FiArrowRight } from "react-icons/fi";
-import Reveal from "@/components/Reveal";
-
-function Arrow() {
-  return (
-    <motion.span
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay: 0.15 }}
-      aria-hidden="true"
-    >
-      <FiArrowRight className="mx-auto h-5 w-5 text-zinc-600" />
-    </motion.span>
-  );
-}
-
 export default function Direction() {
   return (
-    <section className="border-t border-zinc-800/70 py-24 md:py-32">
-      <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 md:px-8 lg:grid-cols-[auto_1fr] lg:gap-20">
-        <Reveal>
-          <p className="sticky top-28 font-mono text-sm uppercase tracking-widest text-accent">
-            06 / Current direction
+    <section className="direction-section" id="direction" aria-labelledby="direction-title">
+      <div className="section-wrap direction-inner">
+        <div className="direction-copy" data-reveal>
+          <p className="section-kicker"><span>11</span> What comes next</p>
+          <h2 id="direction-title">Better software<br />gets <em>more intelligent.</em></h2>
+          <p>
+            I&apos;m pursuing a Master&apos;s in Artificial Intelligence Engineering and currently studying machine learning with Python. My interest is in bringing that knowledge into useful applications — connecting sound engineering with genuinely helpful intelligent features.
           </p>
-        </Reveal>
-
-        <div>
-          <Reveal>
-            <h2 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
-              Frontend engineering and AI
-            </h2>
-          </Reveal>
-
-          <Reveal delay={0.08}>
-            <p className="mt-5 max-w-2xl leading-relaxed text-zinc-400">
-              I&apos;m currently pursuing an MSc in Artificial Intelligence
-              Engineering while continuing to work as a frontend engineer. I&apos;m
-              interested in applying AI to web applications and exploring how
-              frontend systems can work with intelligent features.
-            </p>
-          </Reveal>
-
-          <Reveal delay={0.16}>
-            <div className="mt-10 grid gap-4 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center sm:gap-3">
-              <div className="panel p-6 text-center">
-                <p className="label">Current work</p>
-                <p className="mt-2 text-lg font-semibold">Frontend Engineering</p>
-                <p className="mt-1 text-sm text-zinc-500">primary focus</p>
-              </div>
-
-              <Arrow />
-
-              <div className="panel p-6 text-center">
-                <p className="label">Systems work</p>
-                <p className="mt-2 text-lg font-semibold">Software Architecture</p>
-                <p className="mt-1 text-sm text-zinc-500">multi-zone · shared packages</p>
-              </div>
-
-              <Arrow />
-
-              <div className="panel border-accent/40 bg-accent/5 p-6 text-center">
-                <p className="label text-accent">Next</p>
-                <p className="mt-2 text-lg font-semibold">Artificial Intelligence</p>
-                <p className="mt-1 text-sm text-zinc-500">
-                  studying · M.Sc. in progress
-                </p>
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.24}>
-            <p className="mt-8 max-w-2xl font-mono text-sm leading-relaxed text-zinc-500">
-              Frontend engineering remains my primary professional focus. I&apos;m
-              working toward combining it with a growing interest in AI — such
-              as building web applications that include intelligent features.
-            </p>
-          </Reveal>
+          <p className="direction-footnote">A growing technical direction, grounded in production software experience.</p>
+          <a className="text-link" href="#education">My education <span aria-hidden="true">↗</span></a>
+        </div>
+        <div className="direction-map" role="img" aria-label="An emerging direction from software systems through data and machine learning to intelligent applications" data-reveal data-reveal-delay="130">
+          <p className="direction-map-label">A direction in progress</p>
+          <div className="direction-path">
+            <div className="direction-node direction-node-established"><span>01</span><strong>Software<br />systems</strong><i>Production experience</i></div>
+            <span className="direction-edge" aria-hidden="true">→</span>
+            <div className="direction-node direction-node-active"><span>02</span><strong>Data &amp;<br />learning</strong><i>M.Sc. · in progress</i></div>
+            <span className="direction-edge" aria-hidden="true">→</span>
+            <div className="direction-node direction-node-future"><span>03</span><strong>Intelligent<br />applications</strong><i>Area of interest</i></div>
+          </div>
+          <div className="direction-map-foot"><span>FRONTEND ARCHITECTURE</span><span>PYTHON · MACHINE LEARNING</span><span>APPLIED AI</span></div>
         </div>
       </div>
     </section>

@@ -17,34 +17,38 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("http://localhost:3000"),
-  title: "Kamyar Ganjian — Frontend Engineer | React · Next.js · TypeScript",
+  metadataBase: new URL("https://kamyar-ganjian-portfolio.vercel.app"),
+  title: "Kamyar Ganjian — Full-Stack Software Engineer",
   description:
-    "Frontend Engineer building enterprise software with React, Next.js, and TypeScript — 25 production applications, multi-zone architecture, industrial integrations, and a Master's in AI Engineering.",
+    "Full-stack software engineer with a frontend foundation. Production systems, thoughtful product engineering, and a growing focus on AI and machine learning.",
   keywords: [
     "Kamyar Ganjian",
-    "Frontend Engineer",
+    "Full-Stack Software Engineer",
     "React",
     "Next.js",
     "TypeScript",
+    "C#",
+    ".NET",
+    "Python",
+    "Machine Learning",
     "Enterprise Software",
     "AI Engineering",
   ],
   authors: [{ name: profile.personal.name }],
   openGraph: {
-    title: "Kamyar Ganjian — Frontend Engineer",
+    title: "Kamyar Ganjian — Full-Stack Software Engineer",
     description:
-      "Enterprise frontend engineering with React, Next.js, and TypeScript. 25 production applications, industrial integrations, and a Master's in AI Engineering.",
+      "Production software engineering, frontend architecture, backend systems, and a Master's in Artificial Intelligence Engineering.",
     type: "website",
-    url: "http://localhost:3000",
+    url: "https://kamyar-ganjian-portfolio.vercel.app",
     siteName: "Kamyar Ganjian",
-    images: [{ url: "/images/profile-2.png", width: 1200, height: 1500, alt: "Kamyar Ganjian" }],
+    images: [{ url: "/images/profile-2.png", width: 883, height: 883, alt: "Kamyar Ganjian" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kamyar Ganjian — Frontend Engineer",
+    title: "Kamyar Ganjian — Full-Stack Software Engineer",
     description:
-      "Enterprise frontend engineering with React, Next.js, and TypeScript.",
+      "Full-stack software engineering, frontend architecture, and AI & machine learning.",
     images: ["/images/profile-2.png"],
   },
   robots: { index: true, follow: true },
@@ -57,17 +61,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <div className="ambient" aria-hidden="true">
-          <div className="glow" />
-          <div className="grain" />
-        </div>
         <Navigation />
-          <MotionProvider>
-            <main id="main-content" className="flex-1">
-              {children}
-            </main>
-          </MotionProvider>
-          <Footer />
+        <main id="main-content" className="flex-1">
+          <MotionProvider>{children}</MotionProvider>
+        </main>
+        <Footer />
       </body>
     </html>
   );

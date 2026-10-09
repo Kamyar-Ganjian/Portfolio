@@ -1,8 +1,8 @@
 export const profile = {
   personal: {
     name: "Kamyar Ganjian",
-    title: "Frontend Engineer",
-    specialization: ["React", "Next.js", "TypeScript"],
+    title: "Full-Stack Software Engineer",
+    specialization: ["Frontend Architecture", "Backend Systems", "AI & Machine Learning"],
     location: "Babol, Iran",
     openToRelocation: true,
     relocationDestination: "",
@@ -13,7 +13,7 @@ export const profile = {
   links: {
     github: "https://github.com/Kamyar-Ganjian",
     linkedin:
-      "https://www.linkedin.com/in/kamy-ganj-668201435/?utm_source=chatgpt.com",
+      "https://www.linkedin.com/in/kamy-ganj-668201435/",
     xing: "https://www.xing.com/profile/Kamyar_Ganjian/web_profiles?nwt_nav=profile_icon",
     x: "https://x.com/KamyarGanjia",
     email: "mailto:kamyarganjian@gmail.com",
@@ -33,9 +33,9 @@ export const profile = {
 
   summary: {
     short:
-      "Dedicated Frontend Engineer with 2 years of experience building and optimizing 25 high-performing production applications using React, Next.js, and TypeScript, serving 600–1,000 daily active users in enterprise environments.",
+      "Full-stack software engineer with a frontend foundation, building production applications and exploring the intersection of backend systems, data, and artificial intelligence.",
     about:
-      "I work as a Frontend Engineer at MAM, developing and maintaining enterprise ERP applications with React, Next.js, and TypeScript. I helped migrate the frontend from a monolithic application to a multi-zone, multi-repository architecture, and my work includes shared frontend packages, real-time functionality, data-intensive interfaces, and integrations with industrial weighing systems. I'm currently pursuing a Master's in Artificial Intelligence Engineering and exploring the intersection of frontend development and AI.",
+      "I work as a Frontend Engineer at MAM, developing and maintaining enterprise ERP applications with React, Next.js, and TypeScript. I helped migrate the frontend from a monolithic application to a multi-zone, multi-repository architecture, and my work includes shared frontend packages, real-time functionality, data-intensive interfaces, and integrations with industrial weighing systems. Alongside this production experience, I'm growing my backend practice through full-stack projects and pursuing a Master's in Artificial Intelligence Engineering.",
   },
 
   metrics: {
@@ -276,11 +276,10 @@ export const profile = {
   ],
 
   nav: [
-    { label: "About", href: "#about" },
+    { label: "Work", href: "#work" },
     { label: "Experience", href: "#experience" },
-    { label: "Architecture", href: "#architecture" },
-    { label: "Skills", href: "#skills" },
-    { label: "Education", href: "#education" },
+    { label: "Toolkit", href: "#skills" },
+    { label: "Direction", href: "#direction" },
     { label: "Contact", href: "#contact" },
   ],
 } as const;
