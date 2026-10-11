@@ -35,13 +35,13 @@ export default function Skills() {
     <section className="skills-section section-wrap" id="skills" data-scroll-section aria-labelledby="skills-title">
       <div className="section-heading" data-reveal>
         <p className="section-kicker"><span>09</span> Technical toolkit</p>
-        <div><h2 id="skills-title">Breadth with<br /><em>a point of view.</em></h2>
+        <div className="readable-zone"><h2 id="skills-title">Breadth with<br /><em>a point of view.</em></h2>
           <p className="section-deck">An honest map of where I work in production, where I&apos;m building depth, and what I&apos;m studying.</p>
         </div>
       </div>
       <div className="skills-grid">
         {groups.map((group) => (
-          <article className={`skill-group${group.featured ? " skill-group--featured" : ""}`} data-reveal data-reveal-delay={String(Number(group.number) * 65)} key={group.number}>
+          <article className={`skill-group readable-zone${group.featured ? " skill-group--featured" : ""}`} data-reveal data-reveal-delay={String(Number(group.number) * 65)} key={group.number}>
             <p className="skill-group-top"><span>{group.number} / CAPABILITY</span><span>{group.context}</span></p>
             <h3>{group.title}</h3>
             <p className="skill-description">{group.description}</p>

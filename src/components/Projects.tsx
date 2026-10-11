@@ -103,7 +103,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
         <span className="project-visual-note">{project.visualNote}</span>
         <span className="project-number">{project.number} / 03</span>
       </ProjectFrame>
-      <div className="project-copy">
+      <div className="project-copy readable-zone">
         <p className="project-descriptor">{project.descriptor}</p>
         <h3>{project.name}</h3>
         <p className="project-description">{project.description}</p>
@@ -124,7 +124,7 @@ export default function Projects() {
     <section className="projects-section section-wrap" id="work" data-scroll-section aria-labelledby="work-title">
       <div className="section-heading" data-reveal>
         <p className="section-kicker"><span>02</span> Selected work</p>
-        <div><h2 id="work-title">Useful things,<br /><em>thoughtfully built.</em></h2>
+        <div className="readable-zone"><h2 id="work-title">Useful things,<br /><em>thoughtfully built.</em></h2>
           <p className="section-deck">Independent projects where product choices and engineering details matter.</p>
         </div>
       </div>

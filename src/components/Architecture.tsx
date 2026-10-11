@@ -2,7 +2,7 @@ export default function Architecture() {
   return (
     <section className="architecture-section" id="architecture" data-scroll-section aria-labelledby="architecture-title">
       <div className="section-wrap architecture-inner">
-        <div className="architecture-intro" data-reveal>
+        <div className="architecture-intro readable-zone" data-reveal>
           <p className="section-kicker"><span>04</span> Systems thinking</p>
           <h2 id="architecture-title">One platform.<br /><em>Many independent parts.</em></h2>
           <p>

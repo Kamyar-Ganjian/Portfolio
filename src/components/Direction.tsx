@@ -2,7 +2,7 @@ export default function Direction() {
   return (
     <section className="direction-section" id="direction" data-scroll-section aria-labelledby="direction-title">
       <div className="section-wrap direction-inner">
-        <div className="direction-copy" data-reveal>
+        <div className="direction-copy readable-zone" data-reveal>
           <p className="section-kicker"><span>11</span> What comes next</p>
           <h2 id="direction-title">Better software<br />gets <em>more intelligent.</em></h2>
           <p>

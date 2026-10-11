@@ -6,7 +6,7 @@ export default function About() {
     <section className="about-section section-wrap" id="about" data-scroll-section aria-labelledby="about-title">
       <div className="section-meta" data-reveal><span>01</span><span>Profile / perspective</span></div>
       <div className="about-grid">
-        <div className="about-copy" data-reveal>
+        <div className="about-copy readable-zone" data-reveal>
           <h2 id="about-title">One engineer.<br />More than one <em>layer.</em></h2>
           <p>
             I&apos;m Kamyar — a software engineer with a frontend foundation and a systems mindset. At MAM, I&apos;ve helped evolve enterprise ERP applications used across production, logistics, finance, and other day-to-day operations.
@@ -31,7 +31,7 @@ export default function About() {
         </div>
       </div>
 
-      <div className="about-facts" data-reveal data-reveal-delay="180">
+      <div className="about-facts readable-zone" data-reveal data-reveal-delay="180">
         <div><span>NOW</span><strong>Frontend Engineer <i>@ MAM</i></strong></div>
         <div><span>STUDYING</span><strong>M.Sc. Artificial Intelligence</strong></div>
         <div><span>INTERESTS</span><strong>Systems <i>×</i> intelligent applications</strong></div>

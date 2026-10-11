@@ -6,7 +6,7 @@ export default function IndustrialIntegration() {
   return (
     <section className="integration-section section-wrap" id="integration" data-scroll-section aria-labelledby="integration-title">
       <div className="integration-count" data-reveal><span>CONNECTED TO ERP</span><strong>×{integration.count}</strong><span>INDUSTRIAL SCALES</span></div>
-      <div className="integration-copy" data-reveal data-reveal-delay="90">
+      <div className="integration-copy readable-zone" data-reveal data-reveal-delay="90">
         <p className="section-kicker"><span>06</span> Beyond the browser</p>
         <h2 id="integration-title">Software meets<br /><em>the physical world.</em></h2>
         <p>I integrated industrial weighing systems with an ERP platform: working through device-specific communication protocols, data encodings, and connectivity in production environments.</p>

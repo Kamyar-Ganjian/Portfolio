@@ -51,7 +51,7 @@ export default function Experience() {
       </div>
 
       <div className="experience-body">
-        <div className="experience-role" data-reveal>
+        <div className="experience-role readable-zone" data-reveal>
           <div className="experience-company">
             <span className="company-stamp">MAM</span>
             <div>
@@ -69,7 +69,7 @@ export default function Experience() {
           <a className="company-link" href={role.website} target="_blank" rel="noopener noreferrer">About MAM <span aria-hidden="true">↗</span></a>
         </div>
 
-        <div className="experience-detail">
+        <div className="experience-detail readable-zone">
           {highlights.map((group, index) => (
             <details className="experience-detail-item" data-reveal data-reveal-delay={String(index * 55)} key={group.title} open={index === 0}>
               <summary><span className="detail-index">0{index + 1}</span><span>{group.title}</span><i aria-hidden="true">+</i></summary>

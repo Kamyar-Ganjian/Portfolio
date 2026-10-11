@@ -5,15 +5,15 @@ export default function Hero() {
     <section className="hero" id="hero" aria-labelledby="hero-title">
       <div className="hero-layout section-wrap">
         <div className="hero-content">
-          <div className="hero-kicker"><span className="hero-kicker-dot" />Systems, from interface to infrastructure <i>·</i> Babol, Iran</div>
-          <h1 id="hero-title"><span>Building</span><span>systems.</span><span className="hero-title-shift">Exploring</span><span className="hero-title-shift"><em>intelligence.</em></span></h1>
+          <div className="hero-kicker"><span className="hero-kicker-dot" />Software · infrastructure · operations <i>·</i> {profile.personal.location}</div>
+          <h1 id="hero-title"><span>Building systems.</span><span>Exploring <em>intelligence.</em></span></h1>
           <div className="hero-bottom">
             <div>
               <p className="hero-role">{profile.personal.name}<span>/</span> Full-Stack Software Engineer</p>
-              <p className="hero-focus">Frontend architecture <i>·</i> Connected systems <i>·</i> AI &amp; machine learning</p>
+              <p className="hero-focus">Frontend architecture <i>·</i> Full-stack applications <i>·</i> AI &amp; machine learning</p>
             </div>
             <div className="hero-actions">
-              <a className="button button-primary" href="#work">Enter selected work <span aria-hidden="true">↘</span></a>
+              <a className="button button-primary" href="#work">View selected work <span aria-hidden="true">↘</span></a>
               <a className="hero-contact-link" href={profile.links.email}>Contact <span aria-hidden="true">↗</span></a>
             </div>
           </div>

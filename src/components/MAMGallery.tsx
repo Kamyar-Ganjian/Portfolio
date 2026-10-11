@@ -18,7 +18,7 @@ export default function MAMGallery() {
       <div className="section-wrap">
         <div className="gallery-heading" data-reveal>
           <p className="section-kicker"><span>08</span> The people and places</p>
-          <div><h2 id="gallery-title">More than<br /><em>the workplace.</em></h2>
+          <div className="readable-zone"><h2 id="gallery-title">More than<br /><em>the workplace.</em></h2>
             <p>A few memories from the places I worked, the problems we solved, and the people I shared the journey with. The friendships made along the way matter just as much as the work.</p>
           </div>
         </div>

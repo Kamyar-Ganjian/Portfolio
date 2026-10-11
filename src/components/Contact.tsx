@@ -5,7 +5,7 @@ export default function Contact() {
     <section className="contact-section" id="contact" data-scroll-section aria-labelledby="contact-title">
       <div className="section-wrap contact-inner">
         <p className="section-kicker" data-reveal><span>13</span> Start a conversation</p>
-        <div className="contact-main" data-reveal>
+        <div className="contact-main readable-zone" data-reveal>
           <h2 id="contact-title">Good work starts<br />with <em>a conversation.</em></h2>
           <div className="contact-details">
             <p>I&apos;m open to software engineering opportunities and thoughtful collaborations — especially work across frontend architecture, full-stack products, and emerging AI applications.</p>
