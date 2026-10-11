@@ -1,22 +1,46 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { BufferGeometry, Material, Mesh, Object3D } from "three";
+import type {
+  BufferAttribute,
+  BufferGeometry,
+  InstancedMesh,
+  Material,
+  Mesh,
+  Object3D,
+  Texture,
+} from "three";
+
+/*
+  DEVELOPER LOVE: a calm, muted flight through a living codebase.
+
+  Scroll down and you pass:
+    - Floating editor windows with real code: Next.js, React, JavaScript, C# / .NET,
+      C++, PyTorch training + attention, SQL, and a little love letter in TypeScript
+    - A live `tail -f` terminal that keeps streaming build / deploy / training logs
+    - A 3D git graph with branches (feat/nextjs-app-router, feat/dotnet-api, ml/train-pipeline ...)
+      and commit messages, with a deploy pulse travelling down main
+    - CI/CD gates that softly light up as the pulse passes
+    - A dependency constellation (react, next.js, .net, c++, cuda, pytorch ...)
+    - The final tag: v1.0.0, built with love
+
+  Everything is deliberately low-contrast and desaturated so page text stays easy to read.
+  Two knobs control how dark the background reads:
+    VEIL_CENTER  darkness behind the middle of the screen (where your text usually is)
+    VEIL_EDGE    darkness across the rest of the screen
+  Raise them for even calmer, lower them for more visible scenery.
+*/
+
+const VEIL_CENTER = 0.6;
+const VEIL_EDGE = 0.3;
 
 type Three = typeof import("three");
 type MotionState = { paused: boolean };
 type Controls = { setPaused: (paused: boolean) => void };
+type Vec3 = [number, number, number];
+type Part = { p: Vec3; s: Vec3; c: number; r?: Vec3 };
 
-type Beam = {
-  x: number;
-  y: number;
-  z: number;
-  width: number;
-  height: number;
-  depth: number;
-  color: number;
-  rotation?: [number, number, number];
-};
+const TAU = Math.PI * 2;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
@@ -26,85 +50,536 @@ function seeded(index: number) {
   return value - Math.floor(value);
 }
 
-function makeInstancedBeams(
-  THREE: Three,
-  scene: InstanceType<Three["Scene"]>,
-  geometry: InstanceType<Three["BoxGeometry"]>,
-  material: InstanceType<Three["MeshStandardMaterial"]>,
-  beams: Beam[],
-) {
-  const mesh = new THREE.InstancedMesh(geometry, material, beams.length);
-  const position = new THREE.Vector3();
-  const scale = new THREE.Vector3();
-  const quaternion = new THREE.Quaternion();
-  const matrix = new THREE.Matrix4();
+const hexToRgb = (hex: number) => [
+  (hex >> 16) & 255,
+  (hex >> 8) & 255,
+  hex & 255,
+];
 
-  beams.forEach((beam, index) => {
-    position.set(beam.x, beam.y, beam.z);
-    scale.set(beam.width, beam.height, beam.depth);
-    quaternion.setFromEuler(
-      new THREE.Euler(...(beam.rotation ?? [0, 0, 0])),
-    );
-    matrix.compose(position, quaternion, scale);
-    mesh.setMatrixAt(index, matrix);
-    mesh.setColorAt(index, new THREE.Color(beam.color));
-  });
+// ---------------------------------------------------------------------------
+// Code content
+// ---------------------------------------------------------------------------
+type Snippet = { file: string; tag: string; comment: string; lines: string[] };
 
-  mesh.instanceMatrix.needsUpdate = true;
-  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  scene.add(mesh);
-  return mesh;
+const SNIPPETS: Snippet[] = [
+  {
+    file: "page.tsx",
+    tag: "next.js",
+    comment: "//",
+    lines: [
+      'import { db } from "@/lib/db";',
+      'import { Suspense } from "react";',
+      "",
+      "export default async function Page() {",
+      "  const posts = await db.post.findMany({ take: 10 });",
+      "",
+      "  return (",
+      '    <main className="mx-auto max-w-2xl">',
+      "      <h1>Latest posts</h1>",
+      "      <Suspense fallback={<Skeleton />}>",
+      "        <PostList posts={posts} />",
+      "      </Suspense>",
+      "    </main>",
+      "  );",
+      "}",
+    ],
+  },
+  {
+    file: "Counter.jsx",
+    tag: "react",
+    comment: "//",
+    lines: [
+      'import { useState, useEffect } from "react";',
+      "",
+      "export function Counter({ initial = 0 }) {",
+      "  const [count, setCount] = useState(initial);",
+      "",
+      "  useEffect(() => {",
+      "    document.title = `Clicked ${count} times`;",
+      "  }, [count]);",
+      "",
+      "  return (",
+      "    <button onClick={() => setCount((c) => c + 1)}>",
+      "      Clicked {count} times",
+      "    </button>",
+      "  );",
+      "}",
+    ],
+  },
+  {
+    file: "debounce.js",
+    tag: "javascript",
+    comment: "//",
+    lines: [
+      "export function debounce(fn, wait = 200) {",
+      "  let timer;",
+      "",
+      "  return (...args) => {",
+      "    clearTimeout(timer);",
+      "    timer = setTimeout(() => fn(...args), wait);",
+      "  };",
+      "}",
+      "",
+      "const onSearch = debounce(async (query) => {",
+      "  const res = await fetch(`/api/search?q=${query}`);",
+      "  render(await res.json());",
+      "}, 300);",
+    ],
+  },
+  {
+    file: "Program.cs",
+    tag: "c# / .net",
+    comment: "//",
+    lines: [
+      "var builder = WebApplication.CreateBuilder(args);",
+      "builder.Services.AddDbContext<AppDb>();",
+      "var app = builder.Build();",
+      "",
+      'app.MapGet("/orders/{id}", async (int id, AppDb db) =>',
+      "    await db.Orders.FindAsync(id) is Order o",
+      "        ? Results.Ok(o)",
+      "        : Results.NotFound());",
+      "",
+      'app.MapPost("/orders", async (Order o, AppDb db) => {',
+      "    db.Orders.Add(o);",
+      "    await db.SaveChangesAsync();",
+      '    return Results.Created($"/orders/{o.Id}", o);',
+      "});",
+      "app.Run();",
+    ],
+  },
+  {
+    file: "kernel.cpp",
+    tag: "c++20",
+    comment: "//",
+    lines: [
+      "#include <vector>",
+      "#include <numeric>",
+      "",
+      "template <typename T>",
+      "T dot(const std::vector<T>& a, const std::vector<T>& b) {",
+      "  return std::inner_product(",
+      "      a.begin(), a.end(), b.begin(), T{});",
+      "}",
+      "",
+      "int main() {",
+      "  std::vector<float> x(1 << 20, 1.0f);",
+      "  auto y = x;",
+      "  float s = dot(x, y);",
+      "  return s > 0 ? 0 : 1;",
+      "}",
+    ],
+  },
+  {
+    file: "train.py",
+    tag: "pytorch",
+    comment: "#",
+    lines: [
+      "import torch",
+      "import torch.nn as nn",
+      "",
+      "model = Transformer(d_model=512, n_heads=8).cuda()",
+      "opt = torch.optim.AdamW(model.parameters(), lr=3e-4)",
+      "",
+      "for epoch in range(10):",
+      "    for x, y in loader:",
+      "        logits = model(x.cuda())",
+      "        loss = nn.functional.cross_entropy(logits, y.cuda())",
+      "        loss.backward()",
+      "        opt.step()",
+      "        opt.zero_grad()",
+      '    print(f"epoch {epoch}  loss {loss.item():.4f}")',
+    ],
+  },
+  {
+    file: "attention.py",
+    tag: "machine learning",
+    comment: "#",
+    lines: [
+      "import math",
+      "import torch.nn.functional as F",
+      "",
+      "# softmax(QK^T / sqrt(d)) V",
+      "def attention(q, k, v, mask=None):",
+      "    d = q.size(-1)",
+      "    scores = q @ k.transpose(-2, -1) / math.sqrt(d)",
+      "    if mask is not None:",
+      "        scores = scores.masked_fill(mask == 0, -1e9)",
+      "    weights = F.softmax(scores, dim=-1)",
+      "    return weights @ v",
+    ],
+  },
+  {
+    file: "schema.sql",
+    tag: "postgres",
+    comment: "--",
+    lines: [
+      "CREATE EXTENSION IF NOT EXISTS vector;",
+      "",
+      "CREATE TABLE documents (",
+      "  id         BIGSERIAL PRIMARY KEY,",
+      "  body       TEXT NOT NULL,",
+      "  embedding  vector(1536),",
+      "  created_at TIMESTAMPTZ DEFAULT now()",
+      ");",
+      "",
+      "CREATE INDEX ON documents",
+      "  USING hnsw (embedding vector_cosine_ops);",
+      "",
+      "-- nearest neighbours in ~2ms",
+      "SELECT id, body FROM documents",
+      "ORDER BY embedding <=> $1 LIMIT 5;",
+    ],
+  },
+  {
+    file: "developer.ts",
+    tag: "typescript",
+    comment: "//",
+    lines: [
+      "// what I do for fun",
+      "class Developer {",
+      '  passion = "software engineering";',
+      "  coffee = Infinity;",
+      "",
+      "  async build(idea: Idea): Promise<Product> {",
+      "    const design = await this.think(idea);",
+      "    const code = this.write(design);",
+      "    await this.test(code);",
+      "    return this.ship(code); // best feeling ever",
+      "  }",
+      "}",
+      "",
+      "const me = new Developer();",
+      "await me.build(everything);",
+    ],
+  },
+];
+const TERMINAL_ID = SNIPPETS.length;
+
+const KEYWORDS = new Set([
+  "import",
+  "from",
+  "export",
+  "default",
+  "const",
+  "let",
+  "var",
+  "function",
+  "return",
+  "async",
+  "await",
+  "if",
+  "else",
+  "for",
+  "while",
+  "type",
+  "interface",
+  "class",
+  "new",
+  "def",
+  "yield",
+  "in",
+  "None",
+  "True",
+  "False",
+  "with",
+  "as",
+  "package",
+  "func",
+  "range",
+  "continue",
+  "is",
+  "not",
+  "this",
+  "using",
+  "namespace",
+  "public",
+  "private",
+  "static",
+  "void",
+  "int",
+  "float",
+  "double",
+  "bool",
+  "string",
+  "template",
+  "typename",
+  "auto",
+  "include",
+  "null",
+  "true",
+  "false",
+  "throw",
+  "try",
+  "catch",
+  "record",
+  "override",
+  "struct",
+  "enum",
+  "inline",
+  "nullptr",
+  "constexpr",
+  "SELECT",
+  "FROM",
+  "WHERE",
+  "CREATE",
+  "TABLE",
+  "INDEX",
+  "ON",
+  "USING",
+  "ORDER",
+  "BY",
+  "LIMIT",
+  "NOT",
+  "NULL",
+  "PRIMARY",
+  "KEY",
+  "DEFAULT",
+  "EXTENSION",
+  "IF",
+  "EXISTS",
+]);
+
+const SYN = {
+  text: "#8f99a8",
+  punct: "#66707f",
+  kw: "#9d90b8",
+  str: "#86ab94",
+  num: "#b89a76",
+  cmt: "#4d5663",
+  fn: "#7a9ab8",
+  type: "#b0a479",
+  dim: "#3d4551",
+};
+
+const TOKEN_RE =
+  /(\s+)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|(\d[\d_.,]*)|([A-Za-z_$][\w$]*)|([\s\S])/g;
+
+function tokenize(line: string, comment: string): Array<[string, string]> {
+  let code = line;
+  let note = "";
+  const at = line.indexOf(comment);
+  if (at >= 0) {
+    code = line.slice(0, at);
+    note = line.slice(at);
+  }
+  const out: Array<[string, string]> = [];
+  for (const match of code.matchAll(TOKEN_RE)) {
+    const text = match[0];
+    let color = SYN.punct;
+    if (match[1]) color = SYN.text;
+    else if (match[2]) color = SYN.str;
+    else if (match[3]) color = SYN.num;
+    else if (match[4]) {
+      const next = code[(match.index ?? 0) + text.length];
+      if (KEYWORDS.has(text)) color = SYN.kw;
+      else if (next === "(" || next === ":") color = SYN.fn;
+      else if (/^[A-Z]/.test(text)) color = SYN.type;
+      else color = SYN.text;
+    }
+    out.push([text, color]);
+  }
+  if (note) out.push([note, SYN.cmt]);
+  return out;
 }
 
-function addStructuralMember(
-  THREE: Three,
-  beams: Beam[],
-  start: [number, number, number],
-  end: [number, number, number],
-  thickness: number,
-  color: number,
-) {
-  const direction = new THREE.Vector3(...end).sub(new THREE.Vector3(...start));
-  const orientation = new THREE.Quaternion().setFromUnitVectors(
-    new THREE.Vector3(1, 0, 0),
-    direction.clone().normalize(),
-  );
-  const rotation = new THREE.Euler().setFromQuaternion(orientation);
+type LogLine = { time: string; level: string; msg: string };
+const LOG_POOL: Array<[string, string]> = [
+  ["INFO ", "GET  /api/orders 200 9ms  [.NET]"],
+  ["INFO ", "POST /v1/chat 200 142ms"],
+  ["INFO ", "next build compiled in 4.2s"],
+  ["INFO ", "dotnet test 312 passed"],
+  ["INFO ", "cmake build 100% [kernel.cpp]"],
+  ["INFO ", "epoch 7  loss 0.0421"],
+  ["WARN ", "cache miss key=session:9f2c"],
+  ["INFO ", "inference batch=32 latency=41ms"],
+  ["DEBUG", "pg pool 8/20 connections idle"],
+  ["INFO ", "git push origin main ok"],
+  ["INFO ", "vercel deploy ready"],
+  ["ERROR", "timeout upstream=embed-svc retry 1/3"],
+  ["INFO ", "embedding upsert 512 vectors"],
+  ["INFO ", "hot reload: Counter.jsx"],
+];
+const LEVEL_COLOR: Record<string, string> = {
+  "INFO ": "#7a9ab8",
+  "WARN ": "#b89a76",
+  DEBUG: "#475162",
+  ERROR: "#b27a7a",
+};
+const MONO =
+  'ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace';
 
-  beams.push({
-    x: (start[0] + end[0]) * 0.5,
-    y: (start[1] + end[1]) * 0.5,
-    z: (start[2] + end[2]) * 0.5,
-    width: direction.length(),
-    height: thickness,
-    depth: thickness,
-    color,
-    rotation: [rotation.x, rotation.y, rotation.z],
+const roundRect = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) => {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+};
+
+function paintFrame(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  s: number,
+  title: string,
+  tag: string,
+) {
+  ctx.clearRect(0, 0, w, h);
+  roundRect(ctx, 2, 2, w - 4, h - 4, 18 * s);
+  ctx.fillStyle = "rgba(12, 14, 18, 0.94)";
+  ctx.fill();
+  ctx.lineWidth = 2 * s;
+  ctx.strokeStyle = "rgba(190, 200, 215, 0.12)";
+  ctx.stroke();
+
+  ctx.save();
+  roundRect(ctx, 2, 2, w - 4, h - 4, 18 * s);
+  ctx.clip();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.045)";
+  ctx.fillRect(0, 0, w, 56 * s);
+  ctx.restore();
+
+  ["#d8776f", "#d9b36a", "#7fbf8f"].forEach((color, i) => {
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(34 * s + i * 26 * s, 28 * s, 7 * s, 0, TAU);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  ctx.textBaseline = "middle";
+  ctx.font = `${22 * s}px ${MONO}`;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#737d8c";
+  ctx.fillText(title, 130 * s, 29 * s);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#555f6d";
+  ctx.fillText(tag, w - 30 * s, 29 * s);
+}
+
+const rowY = (row: number, s: number) => (56 + 18) * s + row * 36 * s + 18 * s;
+
+function paintCode(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  snippet: Snippet,
+) {
+  const s = w / 1024;
+  paintFrame(ctx, w, h, s, snippet.file, snippet.tag);
+  ctx.font = `${24 * s}px ${MONO}`;
+  ctx.textBaseline = "middle";
+  const charW = ctx.measureText("M").width;
+  snippet.lines.forEach((line, row) => {
+    const y = rowY(row, s);
+    ctx.textAlign = "right";
+    ctx.fillStyle = SYN.dim;
+    ctx.fillText(String(row + 1), 54 * s, y);
+    ctx.textAlign = "left";
+    let col = 0;
+    for (const [text, color] of tokenize(line, snippet.comment)) {
+      ctx.fillStyle = color;
+      ctx.fillText(text, 78 * s + col * charW, y);
+      col += text.length;
+    }
   });
 }
 
-function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionState) {
+function paintTerminal(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  lines: LogLine[],
+) {
+  const s = w / 1024;
+  paintFrame(ctx, w, h, s, "zsh  ~/app", "tail -f");
+  ctx.font = `${24 * s}px ${MONO}`;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  const charW = ctx.measureText("M").width;
+  ctx.fillStyle = "#6b9a7a";
+  ctx.fillText("$", 30 * s, rowY(0, s));
+  ctx.fillStyle = SYN.text;
+  ctx.fillText("tail -f api.log", 30 * s + charW * 2, rowY(0, s));
+  lines.forEach((line, i) => {
+    const y = rowY(i + 1, s);
+    let x = 30 * s;
+    ctx.fillStyle = SYN.dim;
+    ctx.fillText(line.time, x, y);
+    x += charW * (line.time.length + 1);
+    ctx.fillStyle = LEVEL_COLOR[line.level] ?? SYN.text;
+    ctx.fillText(line.level, x, y);
+    x += charW * (line.level.length + 1);
+    ctx.fillStyle = "#98a2b0";
+    ctx.fillText(line.msg, x, y);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Scene
+// ---------------------------------------------------------------------------
+function createWorld(
+  THREE: Three,
+  container: HTMLDivElement,
+  motion: MotionState,
+) {
+  type Col = InstanceType<Three["Color"]>;
+  type V3 = InstanceType<Three["Vector3"]>;
+  type Curve = InstanceType<Three["CatmullRomCurve3"]>;
+
+  const mobileQuery = window.matchMedia("(max-width: 760px)");
+  const lowCoreCount =
+    navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4;
+
+  // Atmosphere: near-constant graphite, accent drifts from steel to warm sand.
+  const toColors = (hexes: number[]) =>
+    hexes.map((hex) => new THREE.Color(hex));
+  const bgStops = toColors([0x090a0c, 0x0a0b0e, 0x0b0b0e, 0x0a0a0c]);
+  const accentStops = toColors([0x9fb0c6, 0xb0b6c2, 0xc2b8a6]);
+  const sampleStops = (stops: Col[], t: number, out: Col) => {
+    const f = clamp(t, 0, 1) * (stops.length - 1);
+    const i = Math.min(stops.length - 2, Math.floor(f));
+    return out.copy(stops[i]).lerp(stops[i + 1], f - i);
+  };
+
   const scene = new THREE.Scene();
-  const voidColor = new THREE.Color(0x080a09);
-  scene.background = voidColor;
-  scene.fog = new THREE.FogExp2(voidColor, 0.016);
+  const background = bgStops[0].clone();
+  const accent = accentStops[0].clone();
+  scene.background = background;
+  const fog = new THREE.FogExp2(bgStops[0].getHex(), 0.016);
+  scene.fog = fog;
 
-  const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 125);
+  const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 240);
   const cameraPath = new THREE.CatmullRomCurve3(
     [
-      new THREE.Vector3(0.8, 7, 22),
-      new THREE.Vector3(2.2, 7.2, 8),
-      new THREE.Vector3(7, 6.8, -7),
-      new THREE.Vector3(9.5, 7.5, -21),
-      new THREE.Vector3(5.5, 7.1, -35),
-      new THREE.Vector3(-6, 7.8, -49),
-      new THREE.Vector3(-9, 7.3, -63),
-      new THREE.Vector3(-2, 7.6, -78),
+      new THREE.Vector3(0, 2.4, 28),
+      new THREE.Vector3(1.0, 2.5, 10),
+      new THREE.Vector3(-0.8, 2.3, -8),
+      new THREE.Vector3(0, 2.2, -26),
+      new THREE.Vector3(0.8, 2.4, -44),
+      new THREE.Vector3(-0.6, 2.5, -62),
+      new THREE.Vector3(0.6, 2.3, -80),
+      new THREE.Vector3(0, 2.2, -98),
+      new THREE.Vector3(-0.6, 2.4, -116),
+      new THREE.Vector3(0.4, 2.6, -134),
+      new THREE.Vector3(0, 2.8, -152),
     ],
     false,
     "centripetal",
-    0.18,
+    0.2,
   );
+  scene.add(camera);
+
   const renderer = new THREE.WebGLRenderer({
     alpha: false,
     antialias: window.devicePixelRatio < 2,
@@ -112,1143 +587,850 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
     stencil: false,
   });
   renderer.setPixelRatio(1);
-  renderer.setClearColor(voidColor, 1);
+  renderer.setClearColor(background, 1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.28;
+  renderer.toneMapping = THREE.NoToneMapping;
   renderer.domElement.className = "world-canvas";
   renderer.domElement.setAttribute("aria-hidden", "true");
   container.appendChild(renderer.domElement);
+  const maxAnisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
 
-  scene.add(new THREE.HemisphereLight(0xc1cdd0, 0x111719, 1.62));
-  const sun = new THREE.DirectionalLight(0xd8e0e1, 2.75);
-  sun.position.set(-9, 19, 13);
-  scene.add(sun);
-
-  const signalLight = new THREE.PointLight(0x84c5d0, 30, 42, 2);
-  signalLight.position.set(3.5, 2.5, -17);
-  scene.add(signalLight);
-  const foundryLight = new THREE.PointLight(0xb98560, 19, 30, 2);
-  foundryLight.position.set(-10, 2.8, -34);
-  scene.add(foundryLight);
-  const cityRim = new THREE.DirectionalLight(0x8caab0, 0.9);
-  cityRim.position.set(30, 13, -31);
-  scene.add(cityRim);
-
+  // Shared helpers --------------------------------------------------------
   const box = new THREE.BoxGeometry(1, 1, 1);
-  const stoneMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0x13191b,
-    emissiveIntensity: 0.31,
-    metalness: 0.54,
-    roughness: 0.42,
-  });
-  const deckMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0x151c1e,
-    emissiveIntensity: 0.22,
-    metalness: 0.68,
-    roughness: 0.34,
-  });
-  const buildingMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0x11191d,
-    emissiveIntensity: 0.4,
-    metalness: 0.5,
-    roughness: 0.5,
-  });
-  const facadeMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0x101619,
-    emissiveIntensity: 0.24,
-    metalness: 0.62,
-    roughness: 0.42,
-  });
-  const createGlazingMaterial = () => new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0x26383e,
-    emissiveIntensity: 0.34,
-    metalness: 0.24,
-    roughness: 0.24,
-  });
+  const tmpM = new THREE.Matrix4();
+  const tmpP = new THREE.Vector3();
+  const tmpS = new THREE.Vector3();
+  const tmpQ = new THREE.Quaternion();
+  const tmpE = new THREE.Euler();
+  const tmpC = new THREE.Color();
+  const identityQ = new THREE.Quaternion();
+  const MINT = 0x7fae95;
 
-  const pillars: Beam[] = [];
-  const spans: Beam[] = [];
-  const braces: Beam[] = [];
-  const machinery: Beam[] = [];
-  const weighingStructures: Beam[] = [];
-  const indicators: Beam[] = [];
-  const weighingIndicators: Beam[] = [];
-  const roofRibs: Array<{ z: number; color: number }> = [];
-  const cityMasses: Beam[] = [];
-  const cityFacadeBands = Array.from({ length: 4 }, () => [] as Beam[]);
-  const cityWindowBands = Array.from({ length: 4 }, () => [] as Beam[]);
-  const streetFurniture: Beam[] = [];
-  const skyways: Beam[] = [];
-  const baySpacing = 12.2;
-  const bayCount = 10;
-  const outerLine = 14.2;
-  const weighingStations = [
-    { x: 15, z: -18 },
-    { x: -15, z: -53 },
-  ];
-  const weighingStatus = [0, 0];
-
-  // Repeated structural bays share the load like a real long-span facility.
-  // The open center remains a navigable corridor; service work happens on
-  // the side walkways and in the machinery bays.
-  for (let bay = 0; bay < bayCount; bay += 1) {
-    const z = 25 - bay * baySpacing;
-    const centerZ = z - baySpacing * 0.5;
-    const lateField = bay >= 6;
-    const steel = bay % 3 === 1 ? 0x424a4d : 0x343d40;
-    const highlight = lateField ? 0x526368 : bay % 2 === 0 ? 0x596165 : 0x465054;
-    const roofHeight = 9.1 + Math.sin(bay * 0.7) * 0.35;
-
-    for (const side of [-1, 1]) {
-      const x = side * outerLine;
-      const legHeight = roofHeight + 2.2;
-
-      pillars.push({
-        x,
-        y: -2.32 + legHeight * 0.5,
-        z,
-        width: 0.92,
-        height: legHeight,
-        depth: 1.05,
-        color: steel,
-      });
-      pillars.push({
-        x: x + side * 0.7,
-        y: -2.11,
-        z,
-        width: 1.9,
-        height: 0.38,
-        depth: 1.7,
-        color: 0x3b4447,
-      });
-
-      // Deep cross-bracing ties each upright to the next bay.
-      addStructuralMember(
-        THREE,
-        braces,
-        [x, -1.65, z + 0.2],
-        [x, roofHeight - 0.3, z - baySpacing + 0.2],
-        0.16,
-        highlight,
-      );
-      addStructuralMember(
-        THREE,
-        braces,
-        [x, roofHeight - 0.3, z + 0.2],
-        [x, -1.65, z - baySpacing + 0.2],
-        0.12,
-        0x30393c,
-      );
-
-      // Two connected service levels create a readable near-ground rhythm.
-      spans.push(
-        {
-          x: side * 8.8,
-          y: -0.72,
-          z: centerZ,
-          width: 3.1,
-          height: 0.2,
-          depth: baySpacing,
-          color: 0x424b4e,
-        },
-        {
-          x: side * 8.8,
-          y: -0.12,
-          z: centerZ,
-          width: 0.14,
-          height: 0.14,
-          depth: baySpacing,
-          color: 0x586266,
-        },
-        {
-          x: side * 10.25,
-          y: -0.12,
-          z: centerZ,
-          width: 0.12,
-          height: 0.12,
-          depth: baySpacing,
-          color: 0x596367,
-        },
-      );
-
-      for (let post = 0; post <= 5; post += 1) {
-        const postZ = z - 0.7 - post * 2.15;
-        pillars.push({
-          x: side * 7.25,
-          y: -1.47,
-          z: postZ,
-          width: 0.1,
-          height: 1.35,
-          depth: 0.1,
-          color: 0x465054,
-        });
-        pillars.push({
-          x: side * 7.25,
-          y: -0.11,
-          z: postZ,
-          width: 0.1,
-          height: 1.02,
-          depth: 0.1,
-          color: 0x536064,
-        });
-        pillars.push({
-          x: side * 10.25,
-          y: 0.24,
-          z: postZ,
-          width: 0.1,
-          height: 0.78,
-          depth: 0.1,
-          color: 0x536064,
-        });
-      }
-
-      spans.push(
-        {
-          x: side * 10.25,
-          y: 0.57,
-          z: centerZ,
-          width: 0.12,
-          height: 0.12,
-          depth: baySpacing,
-          color: 0x657074,
-        },
-        {
-          x: side * 10.25,
-          y: 0.16,
-          z: centerZ,
-          width: 0.09,
-          height: 0.09,
-          depth: baySpacing,
-          color: 0x515c60,
-        },
-      );
-
-      addStructuralMember(
-        THREE,
-        spans,
-        [side * 7.25, -1.85, z - 1.1],
-        [side * 8.1, -0.78, z - 1.1],
-        0.12,
-        0x4a5558,
-      );
-      addStructuralMember(
-        THREE,
-        spans,
-        [side * 8.1, -0.78, z - 1.1],
-        [side * 9.3, -1.85, z - 1.1],
-        0.12,
-        0x4a5558,
-      );
-
-      // Enclosures and their small status lamps sit inside the service edge,
-      // not as floating props in the central corridor.
-      if (bay % 2 === 0) {
-        const cabinetX = side * 11.7;
-        machinery.push({
-          x: cabinetX,
-          y: -0.53,
-          z: centerZ,
-          width: 1.65,
-          height: 2.25,
-          depth: 1.55,
-          color: bay >= 6 ? 0x39464a : 0x3e4749,
-        });
-        machinery.push({
-          x: cabinetX - side * 0.06,
-          y: -0.32,
-          z: centerZ + 0.79,
-          width: 1.1,
-          height: 1.48,
-          depth: 0.035,
-          color: 0x566064,
-        });
-        indicators.push({
-          x: cabinetX - side * 0.44,
-          y: 0.47,
-          z: centerZ + 0.82,
-          width: 0.09,
-          height: 0.09,
-          depth: 0.055,
-          color: bay % 4 === 0 ? 0xb88d69 : 0x83b8c2,
-        });
-      }
-    }
-
-    // A continuous roof truss and a second service girder make the overhead
-    // scale legible even when the camera is close to the structure.
-    spans.push(
-      {
-        x: 0,
-        y: roofHeight,
-        z,
-        width: outerLine * 2 + 2.2,
-        height: 1.05,
-        depth: 1.2,
-        color: steel,
-      },
-      {
-        x: 0,
-        y: roofHeight - 1.75,
-        z,
-        width: outerLine * 1.73,
-        height: 0.22,
-        depth: 0.25,
-        color: 0x4e585c,
-      },
-      {
-        x: 0,
-        y: roofHeight + 1.05,
-        z: centerZ,
-        width: 0.32,
-        height: 0.28,
-        depth: baySpacing,
-        color: 0x475155,
-      },
-    );
-
-    for (const roofX of [-13.1, -7, 7, 13.1]) {
-      spans.push({
-        x: roofX,
-        y: roofHeight + 0.78,
-        z: centerZ,
-        width: 0.19,
-        height: 0.2,
-        depth: baySpacing,
-        color: 0x424c50,
-      });
-    }
-
-    // Triangular roof braces turn the repeated portal into one continuous
-    // load-bearing truss rather than a row of disconnected arches.
-    for (const side of [-1, 1]) {
-      addStructuralMember(
-        THREE,
-        braces,
-        [side * 13.9, roofHeight + 0.45, z],
-        [side * 8.3, roofHeight + 1.8, z],
-        0.14,
-        highlight,
-      );
-      addStructuralMember(
-        THREE,
-        braces,
-        [side * 8.3, roofHeight + 1.8, z],
-        [side * 2.8, roofHeight + 0.45, z],
-        0.12,
-        0x434d50,
-      );
-    }
-
-    // The roof starts to soften into a measured, ribbed canopy near the
-    // learning horizon while its original supports remain visible beneath.
-    if (bay >= 6) {
-      roofRibs.push({ z, color: bay >= 8 ? 0x71888c : 0x505d60 });
-    }
-  }
-
-  // Two in-road weighing installations make the city's physical operations
-  // legible through their form: recessed decks, load points, sensor portals,
-  // and a connected instrument cabinet.
-  for (const station of weighingStations) {
-    weighingStructures.push(
-      {
-        x: station.x,
-        y: -2.18,
-        z: station.z,
-        width: 9.4,
-        height: 0.2,
-        depth: 6.5,
-        color: 0x465256,
-      },
-      {
-        x: station.x,
-        y: -2.04,
-        z: station.z - 3.2,
-        width: 9.65,
-        height: 0.075,
-        depth: 0.09,
-        color: 0x80b9c0,
-      },
-      {
-        x: station.x,
-        y: -2.04,
-        z: station.z + 3.2,
-        width: 9.65,
-        height: 0.075,
-        depth: 0.09,
-        color: 0x80b9c0,
-      },
-      {
-        x: station.x - 4.72,
-        y: -2.04,
-        z: station.z,
-        width: 0.09,
-        height: 0.075,
-        depth: 6.4,
-        color: 0x64777b,
-      },
-      {
-        x: station.x + 4.72,
-        y: -2.04,
-        z: station.z,
-        width: 0.09,
-        height: 0.075,
-        depth: 6.4,
-        color: 0x64777b,
-      },
-      {
-        x: station.x + 6.1,
-        y: -0.64,
-        z: station.z - 0.4,
-        width: 0.82,
-        height: 2.35,
-        depth: 0.68,
-        color: 0x3b464a,
-      },
-      {
-        x: station.x + 6.1,
-        y: -0.58,
-        z: station.z + 0.02,
-        width: 0.54,
-        height: 0.68,
-        depth: 0.06,
-        color: 0x50666c,
-      },
-    );
-
-    for (const side of [-1, 1]) {
-      for (const along of [-1, 1]) {
-        weighingStructures.push({
-          x: station.x + side * 4.25,
-          y: -1.82,
-          z: station.z + along * 2.7,
-          width: 0.32,
-          height: 0.42,
-          depth: 0.32,
-          color: 0x68777a,
-        });
-      }
-
-      weighingStructures.push({
-        x: station.x + side * 5.45,
-        y: -0.4,
-        z: station.z,
-        width: 0.18,
-        height: 3.25,
-        depth: 0.2,
-        color: 0x4a5559,
-      });
-      weighingIndicators.push({
-        x: station.x + side * 5.45,
-        y: 1.25,
-        z: station.z + 0.12,
-        width: 0.1,
-        height: 0.1,
-        depth: 0.06,
-        color: side < 0 ? 0xb98560 : 0x8ecbd3,
-      });
-    }
-
-    weighingStructures.push({
-      x: station.x,
-      y: 1.18,
-      z: station.z,
-      width: 10.9,
-      height: 0.22,
-      depth: 0.32,
-      color: 0x4b575a,
+  const buildInstanced = (
+    geometry: BufferGeometry,
+    material: Material,
+    parts: Part[],
+    parent: Object3D,
+  ) => {
+    const mesh = new THREE.InstancedMesh(geometry, material, parts.length);
+    parts.forEach((part, index) => {
+      tmpP.set(...part.p);
+      tmpS.set(...part.s);
+      tmpQ.setFromEuler(tmpE.set(...(part.r ?? [0, 0, 0])));
+      tmpM.compose(tmpP, tmpQ, tmpS);
+      mesh.setMatrixAt(index, tmpM);
+      mesh.setColorAt(index, tmpC.set(part.c));
     });
-  }
-
-  // A residential and technology skyline grows along both edges of the
-  // infrastructure boulevard. Three repeatable building families give each
-  // district a different silhouette without scattering unrelated props.
-  const buildingLanes = [16.8, 29.6, 42.4] as const;
-  const buildingColors = [0x465054, 0x566164, 0x38474b, 0x5d686b];
-  const glassColors = {
-    dark: 0x27363b,
-    ice: 0x7faeb7,
-    amber: 0xb58a6a,
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.frustumCulled = false;
+    parent.add(mesh);
+    return mesh;
   };
 
-  for (let row = 0; row < 8; row += 1) {
-    const streetZ = 13 - row * 15.8;
-    const detailBand = Math.floor(row / 2);
+  const textures: Texture[] = [];
 
-    for (const side of [-1, 1]) {
-      for (let lane = 0; lane < buildingLanes.length; lane += 1) {
-        const opensToWeighingCourt = (row === 2 && side === 1 && lane === 0)
-          || (row === 4 && side === -1 && lane === 0);
-        if (opensToWeighingCourt) continue;
-        const variation = seeded((row + 1) * 211 + lane * 47 + (side + 2) * 89);
-        const x = side * (buildingLanes[lane] + (variation - 0.5) * 1.35);
-        const width = (lane === 0 ? 9.8 : lane === 1 ? 8.2 : 7.1) + variation * 1.15;
-        const depth = (lane === 0 ? 10.5 : lane === 1 ? 9.2 : 8.4) + variation * 1.4;
-        const floors = (lane === 0 ? 5 : lane === 1 ? 7 : 11)
-          + Math.floor(row * 0.78)
-          + Math.floor(seeded(row * 67 + lane * 13 + side * 23) * 2);
-        const floorHeight = 1.52;
-        const podiumHeight = lane === 0 ? 3.2 : 2.6;
-        const towerHeight = floors * floorHeight;
-        const baseY = -2.36;
-        const frontZ = streetZ + depth * 0.5;
-        const exterior = buildingColors[(row + lane * 2 + (side < 0 ? 1 : 0)) % buildingColors.length];
-        const trim = row > 4 ? 0x59676b : 0x505c60;
-
-        cityMasses.push({
-          x,
-          y: baseY + podiumHeight * 0.5,
-          z: streetZ,
-          width: width + 1.4,
-          height: podiumHeight,
-          depth: depth + 1.5,
-          color: 0x3a4549,
-        });
-        cityMasses.push({
-          x,
-          y: baseY + podiumHeight + towerHeight * 0.5,
-          z: streetZ,
-          width,
-          height: towerHeight,
-          depth,
-          color: exterior,
-        });
-
-        // A recessed rooftop volume and a thin coping make the roofline vary
-        // between stepped mid-rises and slender high-rise blocks.
-        if (lane !== 1 || variation > 0.42) {
-          const penthouseWidth = width * (lane === 2 ? 0.58 : 0.72);
-          const penthouseHeight = 1.25 + variation * 0.8;
-          cityMasses.push({
-            x: x - side * (width - penthouseWidth) * 0.18,
-            y: baseY + podiumHeight + towerHeight + penthouseHeight * 0.5,
-            z: streetZ - depth * 0.08,
-            width: penthouseWidth,
-            height: penthouseHeight,
-            depth: depth * 0.66,
-            color: 0x343f43,
-          });
-        }
-
-        cityMasses.push({
-          x,
-          y: baseY + podiumHeight + towerHeight + 0.08,
-          z: streetZ,
-          width: width + 0.28,
-          height: 0.16,
-          depth: depth + 0.3,
-          color: trim,
-        });
-
-        const windowColumns = Math.max(3, Math.floor((width - 0.8) / 1.42));
-        const windowSpacing = (width - 0.7) / windowColumns;
-        const paneWidth = Math.min(0.9, windowSpacing * 0.66);
-        const firstWindowX = x - width * 0.5 + 0.35 + windowSpacing * 0.5;
-
-        for (let column = 0; column <= windowColumns; column += 1) {
-          const mullionX = x - width * 0.5 + column * windowSpacing;
-          cityFacadeBands[detailBand].push({
-            x: mullionX,
-            y: baseY + podiumHeight + towerHeight * 0.5,
-            z: frontZ + 0.075,
-            width: 0.075,
-            height: towerHeight - 0.24,
-            depth: 0.12,
-            color: trim,
-          });
-        }
-
-        for (let floor = 0; floor < floors; floor += 1) {
-          const windowY = baseY + podiumHeight + floor * floorHeight + 0.79;
-          const frontFace = frontZ + 0.045;
-
-          for (let column = 0; column < windowColumns; column += 1) {
-            const paneX = firstWindowX + column * windowSpacing;
-            const lightSample = seeded(row * 419 + lane * 151 + floor * 31 + column * 7 + (side + 1) * 11);
-            const color = lightSample > 0.984
-              ? glassColors.amber
-              : lightSample > 0.885
-                ? glassColors.ice
-                : glassColors.dark;
-
-            cityWindowBands[detailBand].push({
-              x: paneX,
-              y: windowY,
-              z: frontFace,
-              width: paneWidth,
-              height: 0.82,
-              depth: 0.045,
-              color,
-            });
-          }
-
-          // The boulevard-facing return keeps the facades dimensional as the
-          // camera rounds the gentle bends in the street.
-          for (const returnWindow of [-1, 1]) {
-            const inwardFaceX = x - side * (width * 0.5 + 0.035);
-            const paneZ = streetZ + returnWindow * depth * 0.22;
-            const sideSample = seeded(row * 313 + lane * 71 + floor * 19 + returnWindow * 3 + side * 7);
-            cityWindowBands[detailBand].push({
-              x: inwardFaceX,
-              y: windowY,
-              z: paneZ,
-              width: 0.76,
-              height: 0.8,
-              depth: 0.045,
-              color: sideSample > 0.92 ? glassColors.ice : glassColors.dark,
-              rotation: [0, Math.PI * 0.5, 0],
-            });
-          }
-
-          if (floor > 0 && floor % (lane === 0 ? 2 : 4) === 0) {
-            cityFacadeBands[detailBand].push({
-              x,
-              y: windowY - 0.7,
-              z: frontZ + 0.22,
-              width: width + 0.24,
-              height: 0.1,
-              depth: 0.42,
-              color: trim,
-            });
-            cityFacadeBands[detailBand].push({
-              x,
-              y: windowY - 0.31,
-              z: frontZ + 0.43,
-              width: width * 0.88,
-              height: 0.055,
-              depth: 0.055,
-              color: 0x687579,
-            });
-          }
-        }
-
-        // Mechanical crowns and small roof beacons punctuate the skyline.
-        if (lane > 0 && row % 2 === 0) {
-          indicators.push({
-            x: x + side * width * 0.28,
-            y: baseY + podiumHeight + towerHeight + 1.42,
-            z: streetZ - depth * 0.08,
-            width: 0.11,
-            height: 0.11,
-            depth: 0.11,
-            color: row % 4 === 0 ? glassColors.amber : glassColors.ice,
-          });
-        }
-      }
-
-      // Two-level street luminaires provide restrained points of warmth at
-      // human scale between the larger structural bays.
-      const lampZ = streetZ - 7.4;
-      const lampX = side * 16.4;
-      streetFurniture.push(
-        {
-          x: lampX,
-          y: 0.05,
-          z: lampZ,
-          width: 0.13,
-          height: 4.8,
-          depth: 0.13,
-          color: 0x505b5f,
-        },
-        {
-          x: lampX - side * 0.7,
-          y: 2.32,
-          z: lampZ,
-          width: 1.5,
-          height: 0.12,
-          depth: 0.12,
-          color: 0x596469,
-        },
-      );
-      indicators.push({
-        x: lampX - side * 1.3,
-        y: 2.2,
-        z: lampZ,
-        width: 0.48,
-        height: 0.08,
-        depth: 0.28,
-        color: row % 3 === 0 ? glassColors.amber : glassColors.ice,
-      });
-    }
-
-    // Elevated links meet the building edges and bridge neighboring blocks
-    // rather than floating as disconnected decorations.
-    if (row % 2 === 1) {
-      const bridgeY = 4.6 + (row % 4) * 0.42;
-      for (const side of [-1, 1]) {
-        skyways.push(
-          {
-            x: side * 27,
-            y: bridgeY,
-            z: streetZ,
-            width: 12.8,
-            height: 0.42,
-            depth: 1.65,
-            color: 0x424d51,
-          },
-          {
-            x: side * 27,
-            y: bridgeY + 0.55,
-            z: streetZ - 0.72,
-            width: 12.8,
-            height: 0.12,
-            depth: 0.11,
-            color: 0x647175,
-          },
-          {
-            x: side * 27,
-            y: bridgeY + 0.55,
-            z: streetZ + 0.72,
-            width: 12.8,
-            height: 0.12,
-            depth: 0.11,
-            color: 0x647175,
-          },
-        );
-      }
-    }
-  }
-
-  // Segmented foundations, transfer platforms, and conveyor rollers anchor
-  // the abstract network in the physical operations it represents.
-  const floorPanels: Beam[] = [];
-  const rollerCount = 6 * 2 * 5;
-  const rollerGeometry = new THREE.CylinderGeometry(0.16, 0.16, 2.9, 12);
-  const rollerMaterial = new THREE.MeshStandardMaterial({
-    color: 0x8b9699,
-    metalness: 0.78,
-    roughness: 0.29,
-  });
-  const rollers = new THREE.InstancedMesh(rollerGeometry, rollerMaterial, rollerCount);
-  const rollerPosition = new THREE.Vector3();
-  const rollerScale = new THREE.Vector3(1, 1, 1);
-  const rollerRotation = new THREE.Quaternion().setFromEuler(
-    new THREE.Euler(0, 0, Math.PI * 0.5),
-  );
-  const rollerLocations: InstanceType<Three["Vector3"]>[] = [];
-  const rollerPhases: number[] = [];
-  const rollerMatrix = new THREE.Matrix4();
-  const rollerSpinAxis = new THREE.Vector3(0, 1, 0);
-  const rollerSpin = new THREE.Quaternion();
-  const animatedRollerRotation = new THREE.Quaternion();
-  rollers.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  let rollerIndex = 0;
-
-  for (let bay = 0; bay < 6; bay += 1) {
-    const z = 25 - bay * baySpacing - baySpacing * 0.5;
-    floorPanels.push({
-      x: 0,
-      y: -2.3,
-      z,
-      width: 27.8,
-      height: 0.14,
-      depth: baySpacing - 0.12,
-      color: bay % 2 === 0 ? 0x20282b : 0x252d30,
-    });
-
-    for (const side of [-1, 1]) {
-      spans.push({
-        x: side * 6.5,
-        y: -1.72,
-        z,
-        width: 3.5,
-        height: 0.16,
-        depth: 5.3,
-        color: 0x414b4f,
-      });
-
-      for (let roller = 0; roller < 5; roller += 1) {
-        rollerPosition.set(side * 6.5, -1.52, z + 1.95 - roller * 0.88);
-        rollerLocations.push(rollerPosition.clone());
-        rollerPhases.push(rollerIndex * 0.19);
-        rollerMatrix.compose(rollerPosition, rollerRotation, rollerScale);
-        rollers.setMatrixAt(rollerIndex, rollerMatrix);
-        rollers.setColorAt(
-          rollerIndex,
-          new THREE.Color(roller % 4 === 0 ? 0x7e888b : 0x596367),
-        );
-        rollerIndex += 1;
-      }
-    }
-  }
-  rollers.instanceMatrix.needsUpdate = true;
-  if (rollers.instanceColor) rollers.instanceColor.needsUpdate = true;
-  scene.add(rollers);
-
-  makeInstancedBeams(THREE, scene, box, stoneMaterial, pillars);
-  makeInstancedBeams(THREE, scene, box, deckMaterial, spans);
-  makeInstancedBeams(THREE, scene, box, stoneMaterial, braces);
-  makeInstancedBeams(THREE, scene, box, stoneMaterial, machinery);
-  makeInstancedBeams(THREE, scene, box, stoneMaterial, weighingStructures);
-  makeInstancedBeams(THREE, scene, box, deckMaterial, floorPanels);
-  makeInstancedBeams(THREE, scene, box, deckMaterial, indicators);
-  makeInstancedBeams(THREE, scene, box, buildingMaterial, cityMasses);
-  makeInstancedBeams(THREE, scene, box, facadeMaterial, streetFurniture);
-  makeInstancedBeams(THREE, scene, box, deckMaterial, skyways);
-
-  const cityFacadeMeshes = cityFacadeBands.map((band) =>
-    makeInstancedBeams(THREE, scene, box, facadeMaterial, band),
-  );
-  const cityWindowMaterials = cityWindowBands.map(() => createGlazingMaterial());
-  const cityWindowMeshes = cityWindowBands.map((band, index) =>
-    makeInstancedBeams(THREE, scene, box, cityWindowMaterials[index], band),
-  );
-  const cityBandCenters = cityFacadeBands.map((_, band) =>
-    13 - (band * 2 + 0.5) * 15.8,
-  );
-  const indicatorOff = new THREE.Color(0x425055);
-  const indicatorMeasuring = new THREE.Color(0xd0a077);
-  const indicatorSending = new THREE.Color(0xb4e9ed);
-  const packetTransit = new THREE.Color(0xa6dbe1);
-  const packetResponse = new THREE.Color(0xd6aa83);
-
-  const cargoMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0x101719,
-    emissiveIntensity: 0.16,
-    metalness: 0.32,
-    roughness: 0.62,
-  });
-  const cargoBodies = new THREE.InstancedMesh(box, cargoMaterial, weighingStations.length);
-  const cargoPallets = new THREE.InstancedMesh(box, deckMaterial, weighingStations.length);
-  const cargoStraps = new THREE.InstancedMesh(box, facadeMaterial, weighingStations.length * 2);
-  const cargoMatrix = new THREE.Matrix4();
-  const cargoPosition = new THREE.Vector3();
-  const cargoScale = new THREE.Vector3();
-  const cargoRotation = new THREE.Quaternion();
-  cargoBodies.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  cargoPallets.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  cargoStraps.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-
-  weighingStations.forEach((station, index) => {
-    const approachZ = station.z + 9;
-    cargoPosition.set(station.x, -1.95, approachZ);
-    cargoScale.set(3.55, 0.16, 2.95);
-    cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
-    cargoPallets.setMatrixAt(index, cargoMatrix);
-    cargoPallets.setColorAt(index, new THREE.Color(index === 0 ? 0x566267 : 0x616c70));
-
-    cargoPosition.set(station.x, -1.1, approachZ);
-    cargoScale.set(2.65, 1.48, 2.3);
-    cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
-    cargoBodies.setMatrixAt(index, cargoMatrix);
-    cargoBodies.setColorAt(index, new THREE.Color(index === 0 ? 0x657175 : 0x58676b));
-
-    for (let strap = 0; strap < 2; strap += 1) {
-      cargoPosition.set(station.x + (strap === 0 ? -0.72 : 0.72), -1.1, approachZ);
-      cargoScale.set(0.085, 1.52, 2.34);
-      cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
-      cargoStraps.setMatrixAt(index * 2 + strap, cargoMatrix);
-      cargoStraps.setColorAt(index * 2 + strap, new THREE.Color(0xa1aeb0));
-    }
-  });
-  cargoPallets.instanceMatrix.needsUpdate = true;
-  cargoBodies.instanceMatrix.needsUpdate = true;
-  cargoStraps.instanceMatrix.needsUpdate = true;
-  if (cargoPallets.instanceColor) cargoPallets.instanceColor.needsUpdate = true;
-  if (cargoBodies.instanceColor) cargoBodies.instanceColor.needsUpdate = true;
-  if (cargoStraps.instanceColor) cargoStraps.instanceColor.needsUpdate = true;
-  scene.add(cargoPallets, cargoBodies, cargoStraps);
-
-  const weighIndicatorMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    toneMapped: false,
-  });
-  const weighIndicatorMesh = new THREE.InstancedMesh(
-    box,
-    weighIndicatorMaterial,
-    weighingIndicators.length,
-  );
-  const weighIndicatorMatrix = new THREE.Matrix4();
-  const weighIndicatorPosition = new THREE.Vector3();
-  const weighIndicatorScale = new THREE.Vector3();
-  weighIndicatorMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  weighingIndicators.forEach((indicator, index) => {
-    weighIndicatorPosition.set(indicator.x, indicator.y, indicator.z);
-    weighIndicatorScale.set(indicator.width, indicator.height, indicator.depth);
-    weighIndicatorMatrix.compose(weighIndicatorPosition, cargoRotation, weighIndicatorScale);
-    weighIndicatorMesh.setMatrixAt(index, weighIndicatorMatrix);
-    weighIndicatorMesh.setColorAt(index, new THREE.Color(0x425055));
-  });
-  weighIndicatorMesh.instanceMatrix.needsUpdate = true;
-  if (weighIndicatorMesh.instanceColor) weighIndicatorMesh.instanceColor.needsUpdate = true;
-  scene.add(weighIndicatorMesh);
-
-  for (const rib of roofRibs) {
-    const points = [
-      new THREE.Vector3(-14.2, 8.6, rib.z),
-      new THREE.Vector3(-10, 10.3, rib.z),
-      new THREE.Vector3(-5, 11.25, rib.z),
-      new THREE.Vector3(0, 11.55, rib.z),
-      new THREE.Vector3(5, 11.25, rib.z),
-      new THREE.Vector3(10, 10.3, rib.z),
-      new THREE.Vector3(14.2, 8.6, rib.z),
-    ];
-    const arch = new THREE.CatmullRomCurve3(points);
-    scene.add(
-      new THREE.Mesh(
-        new THREE.TubeGeometry(arch, 96, 0.11, 6, false),
-        new THREE.MeshStandardMaterial({
-          color: rib.color,
-          emissive: rib.z < -70 ? 0x3e6870 : 0x121a1c,
-          emissiveIntensity: rib.z < -70 ? 0.58 : 0.12,
-          metalness: 0.62,
-          roughness: 0.36,
-        }),
-      ),
+  // Small monospace pills used for commit messages, package names, CI results
+  const makeLabel = (
+    text: string,
+    color: string,
+    fontPx: number,
+    unitsPerPx: number,
+  ) => {
+    const font = `600 ${fontPx}px ${MONO}`;
+    const measure = document.createElement("canvas").getContext("2d")!;
+    measure.font = font;
+    const padX = fontPx * 0.85;
+    const padY = fontPx * 0.6;
+    const w = Math.ceil(measure.measureText(text).width + padX * 2);
+    const h = Math.ceil(fontPx + padY * 2);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d")!;
+    roundRect(ctx, 1.5, 1.5, w - 3, h - 3, h / 2 - 2);
+    ctx.fillStyle = "rgba(8, 9, 12, 0.7)";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.35;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.font = font;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#a3acb9";
+    ctx.fillText(text, padX, h / 2 + 1);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    textures.push(texture);
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0.62,
+        depthWrite: false,
+        toneMapped: false,
+      }),
     );
-  }
+    sprite.scale.set(w * unitsPerPx, h * unitsPerPx, 1);
+    return sprite;
+  };
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(70, 122),
-    new THREE.MeshStandardMaterial({
-      color: 0x111518,
-      metalness: 0.36,
-      roughness: 0.72,
-    }),
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.set(0, -2.48, -26);
-  scene.add(ground);
+  const makeGlow = (hex: number, size: number, opacity = 0.9) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d")!;
+    const [r, g, b] = hexToRgb(hex);
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gradient.addColorStop(0, `rgba(${r},${g},${b},1)`);
+    gradient.addColorStop(0.3, `rgba(${r},${g},${b},0.32)`);
+    gradient.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    textures.push(texture);
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        fog: false,
+        toneMapped: false,
+      }),
+    );
+    sprite.scale.set(size, size, 1);
+    return sprite;
+  };
 
-  const gridPositions: number[] = [];
-  for (let x = -28; x <= 28; x += 3.5) {
-    gridPositions.push(x, -2.39, 34, x, -2.39, -87);
-  }
-  for (let z = -86; z <= 32; z += 2.6) {
-    gridPositions.push(-29, -2.389, z, 29, -2.389, z);
-  }
-  const gridGeometry = new THREE.BufferGeometry();
-  gridGeometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(gridPositions, 3),
-  );
-  const grid = new THREE.LineSegments(
-    gridGeometry,
-    new THREE.LineBasicMaterial({
-      color: 0x596469,
+  // Soft glowing points (halos, dust)
+  const pointMaterials: InstanceType<Three["ShaderMaterial"]>[] = [];
+  const makePoints = (
+    positions: Float32Array,
+    colors: Float32Array,
+    phases: Float32Array,
+    size: number,
+  ) => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("aTint", new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
+    const material = new THREE.ShaderMaterial({
       transparent: true,
-      opacity: 0.13,
       depthWrite: false,
-    }),
-  );
-  scene.add(grid);
-
-  const routeMaterials = [
-    new THREE.MeshBasicMaterial({
-      color: 0x9dd5de,
-      transparent: true,
-      opacity: 0.64,
       blending: THREE.AdditiveBlending,
-      toneMapped: false,
-    }),
-    new THREE.MeshBasicMaterial({
-      color: 0x71868b,
-      transparent: true,
-      opacity: 0.34,
-      blending: THREE.AdditiveBlending,
-      toneMapped: false,
-    }),
-    new THREE.MeshBasicMaterial({
-      color: 0x82aeb6,
-      transparent: true,
-      opacity: 0.3,
-      blending: THREE.AdditiveBlending,
-      toneMapped: false,
-    }),
-  ];
-
-  for (let route = 0; route < 3; route += 1) {
-    const points: InstanceType<Three["Vector3"]>[] = [];
-    for (let point = 0; point <= 64; point += 1) {
-      const progress = point / 64;
-      const z = 32 - progress * 114;
-      const emergence = clamp((progress - 0.58) / 0.42, 0, 1);
-      const wave = Math.sin(progress * Math.PI * 2.4 + route * 0.8);
-      const side = route === 1 ? -1 : 1;
-      const x = route === 0
-        ? 0.35 + wave * (0.42 + emergence * 1.2)
-        : side * (0.4 + clamp(progress * 5, 0, 1) * 4.6 + wave * 0.28);
-      const y = -2.13 + emergence * (2.25 + Math.sin(progress * Math.PI * 2) * 0.8);
-      points.push(new THREE.Vector3(x, y, z));
-    }
-    const curve = new THREE.CatmullRomCurve3(points);
-    const signalPath = new THREE.Mesh(
-      new THREE.TubeGeometry(curve, 220, route === 0 ? 0.025 : 0.016, 5, false),
-      routeMaterials[route],
-    );
-    scene.add(signalPath);
-  }
-
-  const weighingLinkMaterial = new THREE.MeshBasicMaterial({
-    color: 0x80c4ce,
-    transparent: true,
-    opacity: 0.48,
-    blending: THREE.AdditiveBlending,
-    toneMapped: false,
-  });
-  for (const station of weighingStations) {
-    const side = Math.sign(station.x);
-    const link = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(side * 4.6, -2.12, station.z - 0.8),
-      new THREE.Vector3(side * 7.2, -2.1, station.z - 0.8),
-      new THREE.Vector3(side * 10.4, -1.92, station.z),
-      new THREE.Vector3(station.x, -1.92, station.z),
-    ]);
-    scene.add(new THREE.Mesh(new THREE.TubeGeometry(link, 72, 0.028, 5, false), weighingLinkMaterial));
-  }
-
-  const signalPacketCount = 9;
-  const signalPacketGeometry = new THREE.IcosahedronGeometry(0.11, 0);
-  const signalPacketMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    toneMapped: false,
-  });
-  const signalPackets = new THREE.InstancedMesh(
-    signalPacketGeometry,
-    signalPacketMaterial,
-    signalPacketCount,
-  );
-  const signalPacketPhases = Array.from({ length: signalPacketCount }, (_, index) =>
-    (index % 3) / 3 + seeded(index + 1041) * 0.08,
-  );
-  const signalPacketPosition = new THREE.Vector3();
-  const signalPacketScale = new THREE.Vector3();
-  const signalPacketRotation = new THREE.Quaternion();
-  const signalPacketMatrix = new THREE.Matrix4();
-  signalPacketMaterial.transparent = true;
-  signalPacketMaterial.opacity = 0.92;
-  signalPackets.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  for (let packet = 0; packet < signalPacketCount; packet += 1) {
-    signalPackets.setColorAt(
-      packet,
-      new THREE.Color(packet % 5 === 0 ? 0xc19170 : 0xa6dbe1),
-    );
-  }
-  if (signalPackets.instanceColor) signalPackets.instanceColor.needsUpdate = true;
-  scene.add(signalPackets);
-
-  // Further down the route, rigid lanes begin to braid into a large,
-  // measured field of curves: a visual cue for exploration, not a claim of
-  // finished AI products.
-  for (let strand = 0; strand < 6; strand += 1) {
-    const points: InstanceType<Three["Vector3"]>[] = [];
-    const phase = strand * (Math.PI * 2 / 6);
-    for (let point = 0; point <= 72; point += 1) {
-      const progress = point / 72;
-      const z = -40 - progress * 41;
-      const envelope = 1.8 + progress * 6.4;
-      const x = Math.sin(progress * Math.PI * 2.2 + phase) * envelope;
-      const y = 3.4 + Math.cos(progress * Math.PI * 1.6 + phase) * (0.8 + progress * 2.5);
-      points.push(new THREE.Vector3(x, y, z));
-    }
-    const curve = new THREE.CatmullRomCurve3(points);
-    const strandMaterial = new THREE.LineBasicMaterial({
-      color: strand % 3 === 0 ? 0x789ba2 : strand % 3 === 1 ? 0x657276 : 0x435054,
-      transparent: true,
-      opacity: strand % 3 === 0 ? 0.34 : 0.19,
-      depthWrite: false,
+      uniforms: { uTime: { value: 0 }, uSize: { value: size } },
+      vertexShader: `
+        attribute float aPhase;
+        attribute vec3 aTint;
+        uniform float uTime;
+        uniform float uSize;
+        varying vec3 vTint;
+        varying float vAlpha;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mv;
+          float twinkle = 0.75 + 0.25 * sin(uTime * 1.1 + aPhase * 6.2831853);
+          gl_PointSize = clamp(uSize * 70.0 / max(1.0, -mv.z) * twinkle, 1.5, 28.0);
+          vTint = aTint;
+          vAlpha = clamp(1.0 - (-mv.z) / 120.0, 0.0, 1.0) * (0.5 + 0.5 * twinkle);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vTint;
+        varying float vAlpha;
+        void main() {
+          float r = length(gl_PointCoord - 0.5);
+          float halo = 1.0 - smoothstep(0.0, 0.5, r);
+          float core = 1.0 - smoothstep(0.0, 0.14, r);
+          gl_FragColor = vec4(vTint, (halo * halo * 0.28 + core * 0.38) * vAlpha);
+        }
+      `,
     });
-    scene.add(
-      new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(curve.getPoints(240)),
-        strandMaterial,
-      ),
-    );
-  }
+    pointMaterials.push(material);
+    const points = new THREE.Points(geometry, material);
+    points.frustumCulled = false;
+    return points;
+  };
 
-  const mobileQuery = window.matchMedia("(max-width: 760px)");
-  const lowCoreCount = navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4;
-  const particleCount = mobileQuery.matches ? 280 : lowCoreCount ? 420 : 760;
-  const particlePositions = new Float32Array(particleCount * 3);
-  const particleSizes = new Float32Array(particleCount);
-  const particleSpeeds = new Float32Array(particleCount);
-  const particlePhases = new Float32Array(particleCount);
-  const particleColors = new Float32Array(particleCount * 3);
-  const steelDust = new THREE.Color(0x77858a);
-  const iceLight = new THREE.Color(0x9ed7df);
-  const amberLight = new THREE.Color(0xb98560);
-
-  for (let index = 0; index < particleCount; index += 1) {
-    const offset = index * 3;
-    const xSeed = seeded(index + 13);
-    const ySeed = seeded(index + 201);
-    const zSeed = seeded(index + 431);
-    const accent = seeded(index + 811);
-    const tint = accent > 0.96
-      ? amberLight
-      : accent > 0.83
-        ? iceLight
-        : steelDust.clone().lerp(iceLight, accent * 0.12);
-    particlePositions[offset] = (xSeed * 2 - 1) * (7 + ySeed * 12);
-    particlePositions[offset + 1] = -1.6 + ySeed * 11.5;
-    particlePositions[offset + 2] = 32 - zSeed * 114;
-    particleSizes[index] = 0.7 + seeded(index + 37) * 1.35;
-    particleSpeeds[index] = 0.35 + seeded(index + 119) * 1.1;
-    particlePhases[index] = seeded(index + 673);
-    particleColors[offset] = tint.r;
-    particleColors[offset + 1] = tint.g;
-    particleColors[offset + 2] = tint.b;
-  }
-
-  const particleGeometry = new THREE.BufferGeometry();
-  particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
-  particleGeometry.setAttribute("aSize", new THREE.BufferAttribute(particleSizes, 1));
-  particleGeometry.setAttribute("aSpeed", new THREE.BufferAttribute(particleSpeeds, 1));
-  particleGeometry.setAttribute("aPhase", new THREE.BufferAttribute(particlePhases, 1));
-  particleGeometry.setAttribute("aTint", new THREE.BufferAttribute(particleColors, 3));
-  const particleMaterial = new THREE.ShaderMaterial({
+  // ------------------------------------------------------------------------
+  // Floor: blueprint grid. A band of light travels with the deploy pulse.
+  // ------------------------------------------------------------------------
+  const floorMaterial = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    uniforms: { uTime: { value: 0 } },
+    uniforms: {
+      uAccent: { value: accent.clone() },
+      uCam: { value: new THREE.Vector3() },
+      uDeployZ: { value: 30 },
+    },
     vertexShader: `
-      attribute float aSize;
-      attribute float aSpeed;
-      attribute float aPhase;
-      attribute vec3 aTint;
-      uniform float uTime;
-      varying vec3 vTint;
-      varying float vAlpha;
-
+      varying vec3 vWorld;
       void main() {
-        vec3 point = position;
-        float travel = mod(uTime * aSpeed + aPhase * 114.0, 114.0);
-        point.z = 32.0 - travel;
-        point.x += sin(uTime * 0.16 + aPhase * 7.0) * 0.11;
-        point.y += sin(uTime * 0.2 + aPhase * 10.0) * 0.08;
-        vec4 viewPoint = modelViewMatrix * vec4(point, 1.0);
-        gl_Position = projectionMatrix * viewPoint;
-        gl_PointSize = aSize * (105.0 / max(1.0, -viewPoint.z));
-        vTint = aTint;
-        vAlpha = 0.2 + 0.3 * sin(aPhase * 6.2831853 + uTime * 0.7);
+        vec4 w = modelMatrix * vec4(position, 1.0);
+        vWorld = w.xyz;
+        gl_Position = projectionMatrix * viewMatrix * w;
       }
     `,
     fragmentShader: `
-      varying vec3 vTint;
-      varying float vAlpha;
-
+      varying vec3 vWorld;
+      uniform vec3 uAccent;
+      uniform vec3 uCam;
+      uniform float uDeployZ;
+      float gridLine(vec2 coord) {
+        vec2 d = abs(fract(coord - 0.5) - 0.5) / max(fwidth(coord), vec2(0.0001));
+        return 1.0 - min(min(d.x, d.y), 1.0);
+      }
       void main() {
-        float radius = length(gl_PointCoord - 0.5);
-        float halo = 1.0 - smoothstep(0.08, 0.5, radius);
-        float center = 1.0 - smoothstep(0.0, 0.14, radius);
-        gl_FragColor = vec4(vTint, (halo * 0.13 + center * 0.48) * vAlpha);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
+        float minor = gridLine(vWorld.xz / 2.5);
+        float major = gridLine(vWorld.xz / 10.0);
+        float dist = distance(vWorld.xz, uCam.xz);
+        float fade = 1.0 - smoothstep(20.0, 85.0, dist);
+        float dz = (vWorld.z - uDeployZ) / 7.0;
+        float band = exp(-dz * dz);
+        vec3 color = mix(uAccent, vec3(0.45, 0.62, 0.52), band);
+        float a = (minor * 0.06 + major * 0.14) * fade * (1.0 + band * 1.5);
+        a += band * fade * 0.03;
+        gl_FragColor = vec4(color, a);
       }
     `,
   });
-  const particles = new THREE.Points(particleGeometry, particleMaterial);
-  particles.frustumCulled = false;
-  scene.add(particles);
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(140, 250),
+    floorMaterial,
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, -3, -75);
+  floor.renderOrder = -1;
+  scene.add(floor);
 
+  // ------------------------------------------------------------------------
+  // Editor windows with real code + a live terminal
+  // ------------------------------------------------------------------------
+  const PANEL_W = 7.2;
+  const PANEL_H = 4.5;
+  const texW = mobileQuery.matches ? 768 : 1024;
+  const texH = texW * 0.625;
+  const texScale = texW / 1024;
+  const rowUnits = (36 * texScale * PANEL_W) / texW;
+
+  const makePanelTexture = (paint: (ctx: CanvasRenderingContext2D) => void) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = texW;
+    canvas.height = texH;
+    const ctx = canvas.getContext("2d")!;
+    paint(ctx);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = maxAnisotropy;
+    textures.push(texture);
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.55,
+      toneMapped: false,
+      depthWrite: false,
+    });
+    return {
+      ctx,
+      texture,
+      material,
+      redraw: () => {
+        paint(ctx);
+        texture.needsUpdate = true;
+      },
+    };
+  };
+
+  // live terminal buffer
+  const logLines: LogLine[] = [];
+  let logClock = 14 * 3600 + 2 * 60 + 7;
+  const fmtClock = (secs: number) => {
+    const h = Math.floor(secs / 3600) % 24;
+    const m = Math.floor(secs / 60) % 60;
+    const s = Math.floor(secs) % 60;
+    return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
+  };
+  let logSeed = 0;
+  const pushLog = () => {
+    const [level, msg] =
+      LOG_POOL[Math.floor(seeded(logSeed + 6000) * LOG_POOL.length)];
+    logSeed += 1;
+    logClock += 1;
+    logLines.push({ time: fmtClock(logClock), level, msg });
+    while (logLines.length > 14) logLines.shift();
+  };
+  for (let i = 0; i < 14; i += 1) pushLog();
+
+  const codePanels = SNIPPETS.map((snippet) =>
+    makePanelTexture((ctx) => paintCode(ctx, texW, texH, snippet)),
+  );
+  const terminalPanel = makePanelTexture((ctx) =>
+    paintTerminal(ctx, texW, texH, logLines),
+  );
+
+  const panelOrder = [0, 3, 9, 1, 4, 6, 9, 2, 5, 7, 9, 8, 1, 4];
+  const panelGeometry = new THREE.PlaneGeometry(PANEL_W, PANEL_H);
+  const unitPlane = new THREE.PlaneGeometry(1, 1);
+  const unitDot = new THREE.CircleGeometry(0.5, 16);
+  const highlightMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.04,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const breakpointMaterial = new THREE.MeshBasicMaterial({
+    color: MINT,
+    transparent: true,
+    opacity: 0.6,
+    depthWrite: false,
+    toneMapped: false,
+  });
+
+  type PanelState = {
+    group: InstanceType<Three["Group"]>;
+    baseY: number;
+    phase: number;
+    rows: number;
+    highlight: InstanceType<Three["Mesh"]> | null;
+    dot: InstanceType<Three["Mesh"]> | null;
+  };
+  const panels: PanelState[] = [];
+  panelOrder.forEach((which, index) => {
+    const side = index % 2 === 0 ? -1 : 1;
+    const isTerminal = which === TERMINAL_ID;
+    const source = isTerminal ? terminalPanel : codePanels[which];
+    const group = new THREE.Group();
+    group.add(new THREE.Mesh(panelGeometry, source.material));
+
+    let highlight: PanelState["highlight"] = null;
+    let dot: PanelState["dot"] = null;
+    if (!isTerminal) {
+      highlight = new THREE.Mesh(unitPlane, highlightMaterial);
+      highlight.scale.set(PANEL_W * 0.94, rowUnits, 1);
+      highlight.position.z = 0.01;
+      dot = new THREE.Mesh(unitDot, breakpointMaterial);
+      dot.scale.set(0.13, 0.13, 1);
+      dot.position.set(-PANEL_W / 2 + 0.3, 0, 0.012);
+      group.add(highlight, dot);
+    }
+
+    const baseY = 0.6 + seeded(index + 15) * 5.2;
+    group.scale.setScalar(0.88 + seeded(index + 3) * 0.4);
+    group.position.set(
+      side * (7.6 + seeded(index + 9) * 4.2),
+      baseY,
+      21 - index * 12.2,
+    );
+    group.rotation.y = -side * (0.36 + seeded(index + 21) * 0.28);
+    scene.add(group);
+    panels.push({
+      group,
+      baseY,
+      phase: seeded(index + 99) * TAU,
+      rows: isTerminal ? 0 : SNIPPETS[which].lines.length,
+      highlight,
+      dot,
+    });
+  });
+
+  // ------------------------------------------------------------------------
+  // Git graph: trunk, branches, commits, hashes, deploy pulses
+  // ------------------------------------------------------------------------
+  const trunkPoints: V3[] = [];
+  for (let z = 34; z >= -170; z -= 6) {
+    trunkPoints.push(
+      new THREE.Vector3(
+        Math.sin(z * 0.045) * 1.2,
+        -1.2 + Math.sin(z * 0.07 + 1) * 0.25,
+        z,
+      ),
+    );
+  }
+  const trunk = new THREE.CatmullRomCurve3(trunkPoints);
+  scene.add(
+    new THREE.Mesh(
+      new THREE.TubeGeometry(trunk, 420, 0.035, 6, false),
+      new THREE.MeshBasicMaterial({
+        color: 0xa9b2c0,
+        transparent: true,
+        opacity: 0.5,
+        toneMapped: false,
+      }),
+    ),
+  );
+
+  const branchDefs = [
+    {
+      u0: 0.04,
+      len: 0.13,
+      side: -1,
+      theta: 18,
+      amp: 4.8,
+      name: "feat/nextjs-app-router",
+    },
+    {
+      u0: 0.16,
+      len: 0.15,
+      side: 1,
+      theta: 32,
+      amp: 6.2,
+      name: "fix/hydration-bug",
+    },
+    {
+      u0: 0.29,
+      len: 0.13,
+      side: -1,
+      theta: 24,
+      amp: 5.4,
+      name: "perf/cpp-kernels",
+    },
+    {
+      u0: 0.4,
+      len: 0.16,
+      side: 1,
+      theta: 38,
+      amp: 6.8,
+      name: "feat/dotnet-api",
+    },
+    {
+      u0: 0.54,
+      len: 0.13,
+      side: -1,
+      theta: 14,
+      amp: 4.4,
+      name: "feat/react-dashboard",
+    },
+    {
+      u0: 0.66,
+      len: 0.15,
+      side: 1,
+      theta: 28,
+      amp: 6.0,
+      name: "ml/train-pipeline",
+    },
+    { u0: 0.78, len: 0.14, side: -1, theta: 22, amp: 5.2, name: "hotfix/prod" },
+  ];
+  const branchMaterial = new THREE.LineBasicMaterial({
+    color: accent,
+    transparent: true,
+    opacity: 0.32,
+    depthWrite: false,
+  });
+  const branches: Curve[] = branchDefs.map((def) => {
+    const points: V3[] = [];
+    const steps = 48;
+    for (let s = 0; s <= steps; s += 1) {
+      const f = s / steps;
+      const base = trunk.getPointAt(def.u0 + def.len * f);
+      const off = def.amp * Math.pow(Math.sin(Math.PI * f), 0.75);
+      const theta = (def.theta * Math.PI) / 180;
+      points.push(
+        new THREE.Vector3(
+          base.x + def.side * Math.cos(theta) * off,
+          base.y + Math.sin(theta) * off,
+          base.z,
+        ),
+      );
+    }
+    const curve = new THREE.CatmullRomCurve3(points);
+    scene.add(
+      new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(curve.getPoints(160)),
+        branchMaterial,
+      ),
+    );
+    return curve;
+  });
+
+  type Commit = { p: V3; r: number; c: number };
+  const commits: Commit[] = [];
+  const trunkCommitStart = 0;
+  const addCommits = (
+    curve: Curve,
+    spacing: number,
+    radius: number,
+    color: number,
+  ) => {
+    const n = Math.max(2, Math.floor(curve.getLength() / spacing));
+    for (let k = 0; k <= n; k += 1) {
+      commits.push({
+        p: curve.getPointAt(k / n),
+        r: k === 0 || k === n ? radius * 1.6 : radius,
+        c: color,
+      });
+    }
+    return n;
+  };
+  const trunkCommitCount = addCommits(trunk, 4, 0.11, 0xa9b2c0) + 1;
+  branches.forEach((curve) => addCommits(curve, 3.4, 0.085, 0x7b8595));
+  buildInstanced(
+    new THREE.IcosahedronGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }),
+    commits.map((commit) => ({
+      p: [commit.p.x, commit.p.y, commit.p.z] as Vec3,
+      s: [commit.r, commit.r, commit.r] as Vec3,
+      c: commit.c,
+    })),
+    scene,
+  );
+
+  const commitMessages = [
+    "a3f9c2e feat: streaming responses",
+    "7be41d0 fix: race in worker pool",
+    "c91a8f3 perf: faster matrix kernel (c++)",
+    "2d07e6b refactor: move to app router",
+    "f58b3a1 feat: .net minimal api",
+    "e40c9d2 feat: train transformer v2",
+    "19ab7c4 test: react testing library",
+    "8c6f0e5 ci: cache docker layers",
+    "b2d93f7 fix: null ref in handler",
+    "4e1a6c8 docs: why I love this job",
+  ];
+  commitMessages.forEach((message, i) => {
+    const commit =
+      commits[
+        trunkCommitStart +
+          3 +
+          i * Math.floor((trunkCommitCount - 6) / commitMessages.length)
+      ];
+    const label = makeLabel(message, "#7b8696", 26, 0.0095);
+    const side = i % 2 === 0 ? 1 : -1;
+    label.position.set(
+      commit.p.x + side * (2.5 + label.scale.x * 0.5),
+      commit.p.y - 0.35,
+      commit.p.z,
+    );
+    scene.add(label);
+  });
+  branchDefs.forEach((def, i) => {
+    const mid = branches[i].getPointAt(0.5);
+    const label = makeLabel(def.name, "#9fb0c6", 28, 0.0098);
+    label.position.set(mid.x, mid.y + 0.6, mid.z);
+    scene.add(label);
+  });
+
+  // deploy / commit pulses travelling along the graph
+  type PulseDef = {
+    curve: Curve;
+    speed: number;
+    phase: number;
+    size: number;
+    color: number;
+    main: boolean;
+  };
+  const pulseDefs: PulseDef[] = [
+    {
+      curve: trunk,
+      speed: 0,
+      phase: 0,
+      size: 0.2,
+      color: 0xa7cdb6,
+      main: true,
+    },
+    ...[0, 1, 2].map((i) => ({
+      curve: trunk,
+      speed: 0.012 + i * 0.006,
+      phase: i * 0.33,
+      size: 0.1,
+      color: 0xb4bcc8,
+      main: false,
+    })),
+    ...branches.map((curve, i) => ({
+      curve,
+      speed: 0.05 + seeded(i + 70) * 0.04,
+      phase: seeded(i + 80),
+      size: 0.09,
+      color: i % 3 === 0 ? 0xb89a76 : 0xb4bcc8,
+      main: false,
+    })),
+  ];
+  const pulseMesh = new THREE.InstancedMesh(
+    new THREE.IcosahedronGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }),
+    pulseDefs.length,
+  );
+  pulseMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  pulseMesh.frustumCulled = false;
+  const pulsePositions = new Float32Array(pulseDefs.length * 3);
+  const pulseColors = new Float32Array(pulseDefs.length * 3);
+  const pulsePhases = new Float32Array(pulseDefs.length);
+  pulseDefs.forEach((def, index) => {
+    const c = tmpC.set(def.color);
+    pulseMesh.setColorAt(index, c);
+    pulseColors.set([c.r, c.g, c.b], index * 3);
+    pulsePhases[index] = seeded(index + 123);
+  });
+  scene.add(pulseMesh);
+  const pulseHalo = makePoints(pulsePositions, pulseColors, pulsePhases, 5);
+  scene.add(pulseHalo);
+
+  // the end of the route: git tag
+  const finale = trunk.getPointAt(1);
+  const finaleNode = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.5, 2),
+    new THREE.MeshBasicMaterial({ color: 0xb9c2ce, toneMapped: false }),
+  );
+  finaleNode.position.copy(finale);
+  const finaleGlow = makeGlow(0xaeb8c6, 12, 0.3);
+  finaleGlow.position.copy(finale);
+  const finaleLabel = makeLabel(
+    "git tag v1.0.0  built with love",
+    MINT.toString(16).padStart(6, "0").replace(/^/, "#"),
+    34,
+    0.0105,
+  );
+  finaleLabel.position.set(finale.x, finale.y + 2.2, finale.z);
+  scene.add(finaleNode, finaleGlow, finaleLabel);
+
+  // ------------------------------------------------------------------------
+  // CI/CD gates
+  // ------------------------------------------------------------------------
+  const GW = 12.4;
+  const GH = 7.6;
+  const GY = 2.1;
+  const GT = 0.06;
+  const gateDefs = [
+    { z: -9.5, text: "next build compiled" },
+    { z: -34, text: "eslint  0 errors" },
+    { z: -58.5, text: "dotnet test 312 passed" },
+    { z: -83, text: "pytest 1,284 passed" },
+    { z: -107.5, text: "docker push sha-a3f9c2e" },
+    { z: -132, text: "deploy prod ok" },
+  ];
+  const frameParts: Part[] = [];
+  const bracketParts: Part[] = [];
+  const gatePlaneMaterials: InstanceType<Three["MeshBasicMaterial"]>[] = [];
+  gateDefs.forEach((gate) => {
+    frameParts.push(
+      { p: [0, GY + GH / 2, gate.z], s: [GW, GT, GT], c: 0xffffff },
+      { p: [0, GY - GH / 2, gate.z], s: [GW, GT, GT], c: 0xffffff },
+      { p: [-GW / 2, GY, gate.z], s: [GT, GH, GT], c: 0xffffff },
+      { p: [GW / 2, GY, gate.z], s: [GT, GH, GT], c: 0xffffff },
+    );
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        bracketParts.push(
+          {
+            p: [sx * (GW / 2 - 0.45), GY + (sy * GH) / 2, gate.z],
+            s: [0.9, 0.12, 0.12],
+            c: 0x8d97a6,
+          },
+          {
+            p: [(sx * GW) / 2, GY + sy * (GH / 2 - 0.45), gate.z],
+            s: [0.12, 0.9, 0.12],
+            c: 0x8d97a6,
+          },
+        );
+      }
+    }
+    const material = new THREE.MeshBasicMaterial({
+      color: MINT,
+      transparent: true,
+      opacity: 0.01,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    });
+    gatePlaneMaterials.push(material);
+    const plane = new THREE.Mesh(unitPlane, material);
+    plane.scale.set(GW, GH, 1);
+    plane.position.set(0, GY, gate.z);
+    scene.add(plane);
+
+    const label = makeLabel(gate.text, "#7fae95", 30, 0.0105);
+    label.position.set(0, GY + GH / 2 + 0.95, gate.z);
+    scene.add(label);
+  });
+  const basicMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    toneMapped: false,
+  });
+  const gateFrame = buildInstanced(box, basicMaterial, frameParts, scene);
+  buildInstanced(box, basicMaterial, bracketParts, scene);
+  const gateDim = new THREE.Color(0x4d5563);
+  const gateLit = new THREE.Color(MINT);
+
+  // ------------------------------------------------------------------------
+  // Dependency constellation
+  // ------------------------------------------------------------------------
+  const depCount = mobileQuery.matches ? 70 : 130;
+  const depNodes: Array<{ pos: V3; r: number }> = [];
+  for (let i = 0; i < depCount; i += 1) {
+    const angle = seeded(i + 20) * TAU;
+    const radius = 9 + seeded(i + 30) * 14;
+    depNodes.push({
+      pos: new THREE.Vector3(
+        Math.cos(angle) * radius * 1.25,
+        Math.max(-2.3, 2 + Math.sin(angle) * radius * 0.55),
+        34 - seeded(i + 10) * 200,
+      ),
+      r: 0.12 + seeded(i + 40) * 0.16,
+    });
+  }
+  const degree = new Array(depCount).fill(0) as number[];
+  const edges: Array<[V3, V3]> = [];
+  const edgePositions: number[] = [];
+  for (let i = 0; i < depCount; i += 1) {
+    for (let j = i + 1; j < depCount; j += 1) {
+      if (degree[i] >= 3 || degree[j] >= 3) continue;
+      if (depNodes[i].pos.distanceTo(depNodes[j].pos) > 11) continue;
+      degree[i] += 1;
+      degree[j] += 1;
+      const a = depNodes[i].pos;
+      const b = depNodes[j].pos;
+      edges.push([a, b]);
+      edgePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    }
+  }
+  const edgeGeometry = new THREE.BufferGeometry();
+  edgeGeometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(edgePositions, 3),
+  );
+  scene.add(
+    new THREE.LineSegments(
+      edgeGeometry,
+      new THREE.LineBasicMaterial({
+        color: 0x606a7a,
+        transparent: true,
+        opacity: 0.18,
+        depthWrite: false,
+      }),
+    ),
+  );
+  buildInstanced(
+    new THREE.IcosahedronGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }),
+    depNodes.map((node, i) => ({
+      p: [node.pos.x, node.pos.y, node.pos.z] as Vec3,
+      s: [node.r, node.r, node.r] as Vec3,
+      c: i % 7 === 0 ? 0x98a2b2 : 0x636d7c,
+    })),
+    scene,
+  );
+  const depHaloPositions = new Float32Array(depCount * 3);
+  const depHaloColors = new Float32Array(depCount * 3);
+  const depHaloPhases = new Float32Array(depCount);
+  depNodes.forEach((node, i) => {
+    depHaloPositions.set([node.pos.x, node.pos.y, node.pos.z], i * 3);
+    depHaloColors.set([0.3, 0.34, 0.4], i * 3);
+    depHaloPhases[i] = seeded(i + 55);
+  });
+  scene.add(makePoints(depHaloPositions, depHaloColors, depHaloPhases, 5));
+
+  const packages = [
+    "react",
+    "next.js",
+    "typescript",
+    "node.js",
+    ".net",
+    "c#",
+    "c++",
+    "cmake",
+    "pytorch",
+    "numpy",
+    "cuda",
+    "postgres",
+    "redis",
+    "docker",
+    "kubernetes",
+    "webassembly",
+    "tailwind",
+    "graphql",
+  ];
+  packages.forEach((name, i) => {
+    const node = depNodes[Math.floor((i * depCount) / packages.length)];
+    const label = makeLabel(name, "#7b8696", 26, 0.0092);
+    label.position.set(node.pos.x, node.pos.y + 0.6, node.pos.z);
+    scene.add(label);
+  });
+
+  const PACKET_COUNT = 48;
+  const packetMesh = new THREE.InstancedMesh(
+    new THREE.IcosahedronGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }),
+    PACKET_COUNT,
+  );
+  packetMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  packetMesh.frustumCulled = false;
+  const packets = Array.from({ length: PACKET_COUNT }, (_, i) => ({
+    edge: edges[Math.floor(seeded(i + 8000) * edges.length)],
+    speed: 0.15 + seeded(i + 8100) * 0.35,
+    phase: seeded(i + 8200),
+  }));
+  packets.forEach((_, i) =>
+    packetMesh.setColorAt(i, tmpC.set(i % 6 === 0 ? MINT : 0xb4bcc8)),
+  );
+  if (packetMesh.instanceColor) packetMesh.instanceColor.needsUpdate = true;
+  scene.add(packetMesh);
+
+  // ------------------------------------------------------------------------
+  // Dust
+  // ------------------------------------------------------------------------
+  const dustCount = mobileQuery.matches ? 260 : lowCoreCount ? 380 : 600;
+  const dustPositions = new Float32Array(dustCount * 3);
+  const dustColors = new Float32Array(dustCount * 3);
+  const dustPhases = new Float32Array(dustCount);
+  for (let i = 0; i < dustCount; i += 1) {
+    dustPositions[i * 3] = (seeded(i + 3) * 2 - 1) * (4 + seeded(i + 9) * 18);
+    dustPositions[i * 3 + 1] = -2.4 + seeded(i + 21) * 12;
+    dustPositions[i * 3 + 2] = 30 - seeded(i + 55) * 195;
+    const tone = 0.24 + seeded(i + 77) * 0.16;
+    dustColors.set([tone, tone * 1.04, tone * 1.1], i * 3);
+    dustPhases[i] = seeded(i + 133);
+  }
+  scene.add(makePoints(dustPositions, dustColors, dustPhases, 0.8));
+
+  // ------------------------------------------------------------------------
+  // Veil: a soft dark patch in the middle of the view keeps page text legible
+  // ------------------------------------------------------------------------
+  const veilCanvas = document.createElement("canvas");
+  veilCanvas.width = 256;
+  veilCanvas.height = 256;
+  const veilCtx = veilCanvas.getContext("2d")!;
+  const veilGradient = veilCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  veilGradient.addColorStop(0, `rgba(9, 10, 12, ${VEIL_CENTER})`);
+  veilGradient.addColorStop(
+    0.6,
+    `rgba(9, 10, 12, ${(VEIL_CENTER + VEIL_EDGE) / 2})`,
+  );
+  veilGradient.addColorStop(1, `rgba(9, 10, 12, ${VEIL_EDGE})`);
+  veilCtx.fillStyle = veilGradient;
+  veilCtx.fillRect(0, 0, 256, 256);
+  const veilTexture = new THREE.CanvasTexture(veilCanvas);
+  veilTexture.colorSpace = THREE.SRGBColorSpace;
+  textures.push(veilTexture);
+  const veil = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({
+      map: veilTexture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      fog: false,
+      toneMapped: false,
+    }),
+  );
+  veil.renderOrder = 999;
+  veil.position.set(0, 0, -1);
+  veil.visible = VEIL_CENTER > 0 || VEIL_EDGE > 0;
+  camera.add(veil);
+
+  // ------------------------------------------------------------------------
+  // Runtime state
+  // ------------------------------------------------------------------------
   const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
-  const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const motionPreference = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  );
   const reducedMotion = { value: motionPreference.matches };
   const scroll = { target: 0, current: 0 };
   let width = 0;
@@ -1257,46 +1439,99 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
   let lastFrame = 0;
   let elapsed = 0;
   let lastCameraTime = 0;
+  let lastLogTime = -10;
   let disposed = false;
   let contextAvailable = true;
   let shadersReady = false;
 
-  const resize = () => {
-    const bounds = container.getBoundingClientRect();
-    width = bounds.width;
-    height = bounds.height;
-    if (!width || !height) return;
+  const updateDynamic = (t: number) => {
+    // floating windows + debugger stepping
+    panels.forEach((panel) => {
+      panel.group.position.y =
+        panel.baseY + Math.sin(t * 0.5 + panel.phase) * 0.18;
+      panel.group.rotation.z = Math.sin(t * 0.3 + panel.phase) * 0.012;
+      if (panel.highlight && panel.dot) {
+        const row = Math.floor(t * 0.7 + panel.phase * 2.2) % panel.rows;
+        const y = PANEL_H / 2 - (rowY(row, texScale) * PANEL_W) / texW;
+        panel.highlight.position.y = y;
+        panel.dot.position.y = y;
+      }
+    });
 
-    const pixelRatio = mobileQuery.matches ? 0.82 : lowCoreCount ? 1 : 1.28;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pixelRatio));
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.fov = mobileQuery.matches ? 51 : 46;
-    camera.updateProjectionMatrix();
-    render(performance.now(), true);
-  };
+    // live logs
+    if (t - lastLogTime > 0.85) {
+      lastLogTime = t;
+      pushLog();
+      terminalPanel.redraw();
+    }
 
-  const updateCityLevelOfDetail = () => {
-    const cameraZ = camera.position.z;
-    cityBandCenters.forEach((centerZ, index) => {
-      const distance = Math.abs(cameraZ - centerZ);
-      cityFacadeMeshes[index].visible = distance < 58;
-      cityWindowMeshes[index].visible = distance < 48;
+    // pulses along the git graph
+    let deployZ = 30;
+    pulseDefs.forEach((def, index) => {
+      const u = def.main ? (t * 0.035) % 1 : (t * def.speed + def.phase) % 1;
+      def.curve.getPointAt(u, tmpP);
+      if (def.main) deployZ = tmpP.z;
+      pulsePositions.set([tmpP.x, tmpP.y, tmpP.z], index * 3);
+      tmpS.setScalar(def.size * (def.main ? 1 + Math.sin(t * 4) * 0.12 : 1));
+      tmpM.compose(tmpP, identityQ, tmpS);
+      pulseMesh.setMatrixAt(index, tmpM);
+    });
+    pulseMesh.instanceMatrix.needsUpdate = true;
+    (
+      pulseHalo.geometry.getAttribute("position") as BufferAttribute
+    ).needsUpdate = true;
+    floorMaterial.uniforms.uDeployZ.value = deployZ;
+
+    // CI gates light up as the deploy pulse passes through
+    gateDefs.forEach((gate, i) => {
+      const d = gate.z - deployZ;
+      const f = Math.exp(-(d * d) / 50);
+      tmpC
+        .copy(gateDim)
+        .lerp(gateLit, f)
+        .multiplyScalar(0.7 + f * 0.6);
+      for (let k = 0; k < 4; k += 1) gateFrame.setColorAt(i * 4 + k, tmpC);
+      gatePlaneMaterials[i].opacity = 0.006 + f * 0.035;
+    });
+    if (gateFrame.instanceColor) gateFrame.instanceColor.needsUpdate = true;
+
+    // data packets in the dependency graph
+    packets.forEach((packet, index) => {
+      const u = (t * packet.speed + packet.phase) % 1;
+      tmpP.lerpVectors(packet.edge[0], packet.edge[1], u);
+      tmpS.setScalar(0.07 * (0.6 + Math.sin(u * Math.PI) * 0.7));
+      tmpM.compose(tmpP, identityQ, tmpS);
+      packetMesh.setMatrixAt(index, tmpM);
+    });
+    packetMesh.instanceMatrix.needsUpdate = true;
+
+    const beat = 1 + Math.sin(t * 1.3) * 0.06;
+    finaleNode.scale.setScalar(beat);
+    finaleGlow.scale.setScalar(12 * beat);
+
+    pointMaterials.forEach((material) => {
+      material.uniforms.uTime.value = t;
     });
   };
+  updateDynamic(0);
 
   const updateCamera = (time: number, snap = false) => {
     const progress = reducedMotion.value ? 0 : scroll.target;
-    const elapsedFrame = lastCameraTime === 0 ? 1 / 30 : clamp((time - lastCameraTime) * 0.001, 0.001, 0.1);
+    const elapsedFrame =
+      lastCameraTime === 0
+        ? 1 / 30
+        : clamp((time - lastCameraTime) * 0.001, 0.001, 0.1);
     lastCameraTime = time;
-    const ease = snap || motion.paused || reducedMotion.value
-      ? 1
-      : 1 - Math.exp(-elapsedFrame / 0.34);
+    const ease =
+      snap || motion.paused || reducedMotion.value
+        ? 1
+        : 1 - Math.exp(-elapsedFrame / 0.34);
 
     scroll.current += (progress - scroll.current) * ease;
     const position = cameraPath.getPointAt(scroll.current);
-    position.x += pointer.x * 0.48;
-    position.y += pointer.y * 0.26;
+    const idle = motion.paused || reducedMotion.value ? 0 : 1;
+    position.x += pointer.x * 0.48 + Math.sin(elapsed * 0.23) * 0.18 * idle;
+    position.y += pointer.y * 0.26 + Math.sin(elapsed * 0.31) * 0.08 * idle;
     camera.position.lerp(position, ease);
 
     const direction = cameraPath.getTangentAt(scroll.current);
@@ -1306,110 +1541,46 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
     camera.lookAt(lookAhead);
   };
 
+  const updateAtmosphere = () => {
+    const t = scroll.current;
+    sampleStops(bgStops, t, background);
+    fog.color.copy(background);
+    sampleStops(accentStops, t, accent);
+    branchMaterial.color.copy(accent);
+    floorMaterial.uniforms.uAccent.value.copy(accent);
+    floorMaterial.uniforms.uCam.value.copy(camera.position);
+  };
+
   const render = (time: number, snap = false) => {
-    if (disposed || !contextAvailable || !shadersReady || !width || !height) return;
+    if (disposed || !contextAvailable || !shadersReady || !width || !height)
+      return;
     if (!motion.paused && !reducedMotion.value) {
       elapsed = time * 0.001;
-      particleMaterial.uniforms.uTime.value = elapsed;
       pointer.x += (pointer.targetX - pointer.x) * 0.035;
       pointer.y += (pointer.targetY - pointer.y) * 0.035;
-
-      weighingStations.forEach((station, index) => {
-        const phase = (elapsed * 0.055 + index * 0.5) % 1;
-        let cargoZ = station.z + 9;
-        let visible = true;
-        let status = 0;
-        const smooth = (value: number) => value * value * (3 - 2 * value);
-
-        if (phase < 0.22) {
-          cargoZ -= smooth(phase / 0.22) * 6;
-        } else if (phase < 0.4) {
-          cargoZ = station.z + 3 - smooth((phase - 0.22) / 0.18) * 3;
-        } else if (phase < 0.62) {
-          cargoZ = station.z;
-          status = 1;
-        } else if (phase < 0.82) {
-          cargoZ = station.z - smooth((phase - 0.62) / 0.2) * 11;
-          status = 2;
-        } else {
-          cargoZ = station.z - 11;
-          visible = false;
-        }
-        weighingStatus[index] = status;
-
-        const visibleScale = visible ? 1 : 0.0001;
-        cargoScale.set(3.55 * visibleScale, 0.16 * visibleScale, 2.95 * visibleScale);
-        cargoPosition.set(station.x, -1.95, cargoZ);
-        cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
-        cargoPallets.setMatrixAt(index, cargoMatrix);
-
-        cargoScale.set(2.65 * visibleScale, 1.48 * visibleScale, 2.3 * visibleScale);
-        cargoPosition.set(station.x, -1.1, cargoZ);
-        cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
-        cargoBodies.setMatrixAt(index, cargoMatrix);
-
-        for (let strap = 0; strap < 2; strap += 1) {
-          cargoScale.set(0.085 * visibleScale, 1.52 * visibleScale, 2.34 * visibleScale);
-          cargoPosition.set(station.x + (strap === 0 ? -0.72 : 0.72), -1.1, cargoZ);
-          cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
-          cargoStraps.setMatrixAt(index * 2 + strap, cargoMatrix);
-        }
-
-        const statusColor = status === 1
-          ? indicatorMeasuring
-          : status === 2
-            ? indicatorSending
-            : indicatorOff;
-        weighIndicatorMesh.setColorAt(index * 2, statusColor);
-        weighIndicatorMesh.setColorAt(index * 2 + 1, statusColor);
-      });
-      cargoPallets.instanceMatrix.needsUpdate = true;
-      cargoBodies.instanceMatrix.needsUpdate = true;
-      cargoStraps.instanceMatrix.needsUpdate = true;
-      if (weighIndicatorMesh.instanceColor) weighIndicatorMesh.instanceColor.needsUpdate = true;
-
-      cityWindowMaterials.forEach((material, band) => {
-        const pulse = 0.5 + 0.5 * Math.sin(elapsed * 0.34 - band * 1.42);
-        const nearbyStation = band === 1 ? weighingStatus[0] : band === 2 ? weighingStatus[1] : 0;
-        material.emissiveIntensity = 0.16 + pulse * 0.22 + nearbyStation * 0.19;
-      });
-
-      const rollerSpeed = elapsed * 0.92;
-      rollerLocations.forEach((position, index) => {
-        rollerSpin.setFromAxisAngle(rollerSpinAxis, rollerSpeed + rollerPhases[index]);
-        animatedRollerRotation.copy(rollerRotation).multiply(rollerSpin);
-        rollerMatrix.compose(position, animatedRollerRotation, rollerScale);
-        rollers.setMatrixAt(index, rollerMatrix);
-      });
-      rollers.instanceMatrix.needsUpdate = true;
-
-      for (let packet = 0; packet < signalPacketCount; packet += 1) {
-        const progress = (elapsed * 0.022 + signalPacketPhases[packet]) % 1;
-        const emergence = clamp((progress - 0.58) / 0.42, 0, 1);
-        const track = packet % 3;
-        const sway = Math.sin(progress * Math.PI * 2.4 + track * 0.8);
-        const side = track === 1 ? -1 : 1;
-        const x = track === 0
-          ? 0.35 + sway * (0.42 + emergence * 1.2)
-          : side * (0.4 + clamp(progress * 5, 0, 1) * 4.6 + sway * 0.28);
-        const y = -1.85 + emergence * (2.25 + Math.sin(progress * Math.PI * 2) * 0.8);
-        const z = 32 - progress * 114;
-        const transmitting = weighingStatus[packet % weighingStatus.length] === 2;
-        const pulse = (0.88 + Math.sin(elapsed * 1.8 + signalPacketPhases[packet] * Math.PI * 2) * 0.12)
-          * (transmitting ? 1.32 : 1);
-        signalPacketPosition.set(x, y, z);
-        signalPacketScale.setScalar(pulse);
-        signalPacketMatrix.compose(signalPacketPosition, signalPacketRotation, signalPacketScale);
-        signalPackets.setMatrixAt(packet, signalPacketMatrix);
-        signalPackets.setColorAt(packet, transmitting ? packetResponse : packetTransit);
-      }
-      signalPackets.instanceMatrix.needsUpdate = true;
-      if (signalPackets.instanceColor) signalPackets.instanceColor.needsUpdate = true;
+      updateDynamic(elapsed);
     }
     updateCamera(time, snap);
-    updateCityLevelOfDetail();
+    updateAtmosphere();
     renderer.render(scene, camera);
     container.dataset.ready = "true";
+  };
+
+  const resize = () => {
+    const bounds = container.getBoundingClientRect();
+    width = bounds.width;
+    height = bounds.height;
+    if (!width || !height) return;
+
+    const pixelRatio = mobileQuery.matches ? 0.9 : lowCoreCount ? 1 : 1.35;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pixelRatio));
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.fov = mobileQuery.matches ? 51 : 46;
+    camera.updateProjectionMatrix();
+    const planeHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    veil.scale.set(planeHeight * camera.aspect * 1.1, planeHeight * 1.1, 1);
+    render(performance.now(), true);
   };
 
   const animate = (time: number) => {
@@ -1435,13 +1606,16 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
 
   const readScroll = () => {
     if (reducedMotion.value) return;
-    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-    scroll.target = scrollable > 0 ? clamp(window.scrollY / scrollable, 0, 1) : 0;
+    const scrollable =
+      document.documentElement.scrollHeight - window.innerHeight;
+    scroll.target =
+      scrollable > 0 ? clamp(window.scrollY / scrollable, 0, 1) : 0;
     if (motion.paused) render(performance.now(), true);
   };
 
   const readPointer = (event: PointerEvent) => {
-    if (reducedMotion.value || motion.paused || event.pointerType !== "mouse") return;
+    if (reducedMotion.value || motion.paused || event.pointerType !== "mouse")
+      return;
     pointer.targetX = (event.clientX / window.innerWidth - 0.5) * 2;
     pointer.targetY = (event.clientY / window.innerHeight - 0.5) * 2;
   };
@@ -1473,7 +1647,10 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
   };
 
   renderer.domElement.addEventListener("webglcontextlost", handleContextLost);
-  renderer.domElement.addEventListener("webglcontextrestored", handleContextRestored);
+  renderer.domElement.addEventListener(
+    "webglcontextrestored",
+    handleContextRestored,
+  );
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
   window.addEventListener("resize", resize, { passive: true });
@@ -1493,7 +1670,7 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
       start();
     })
     .catch(() => {
-      // Keep the pre-rendered field illustration if shader compilation fails.
+      // Keep the pre-rendered SVG illustration if shader compilation fails.
       contextAvailable = false;
       container.dataset.ready = "false";
     });
@@ -1517,8 +1694,14 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
       window.removeEventListener("blur", clearPointer);
       motionPreference.removeEventListener("change", handleMotionChange);
       document.removeEventListener("visibilitychange", handleVisibility);
-      renderer.domElement.removeEventListener("webglcontextlost", handleContextLost);
-      renderer.domElement.removeEventListener("webglcontextrestored", handleContextRestored);
+      renderer.domElement.removeEventListener(
+        "webglcontextlost",
+        handleContextLost,
+      );
+      renderer.domElement.removeEventListener(
+        "webglcontextrestored",
+        handleContextRestored,
+      );
 
       const geometries = new Set<BufferGeometry>();
       const materials = new Set<Material>();
@@ -1530,9 +1713,13 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
         } else if (renderable.material) {
           materials.add(renderable.material);
         }
+        if ((object as InstancedMesh).isInstancedMesh) {
+          (object as InstancedMesh).dispose();
+        }
       });
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((material) => material.dispose());
+      textures.forEach((texture) => texture.dispose());
       renderer.dispose();
       renderer.domElement.remove();
       container.removeAttribute("data-ready");
@@ -1594,68 +1781,97 @@ export default function ComputationalWorld() {
   return (
     <>
       <div className="computational-world" ref={containerRef}>
-        <svg className="world-fallback" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <svg
+          className="world-fallback"
+          viewBox="0 0 1440 900"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+        >
           <defs>
-            <linearGradient id="world-floor" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#172024" stopOpacity="0" />
-              <stop offset="0.4" stopColor="#11171a" stopOpacity=".84" />
-              <stop offset="1" stopColor="#080a09" />
-            </linearGradient>
-            <radialGradient id="world-signal">
-              <stop stopColor="#84c5d0" stopOpacity=".23" />
-              <stop offset="1" stopColor="#84c5d0" stopOpacity="0" />
+            <radialGradient id="world-glow" cx="50%" cy="46%" r="60%">
+              <stop stopColor="#9fb0c6" stopOpacity=".12" />
+              <stop offset="1" stopColor="#9fb0c6" stopOpacity="0" />
             </radialGradient>
+            <linearGradient id="world-floor" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#9fb0c6" stopOpacity="0" />
+              <stop offset="1" stopColor="#9fb0c6" stopOpacity=".1" />
+            </linearGradient>
           </defs>
-          <rect width="1440" height="900" fill="#080a09" />
-          <ellipse cx="930" cy="475" rx="680" ry="400" fill="url(#world-signal)" />
-          <path d="M0 900 450 485h540L1440 900Z" fill="url(#world-floor)" />
-          <g fill="#1c262a" stroke="#465256" strokeOpacity=".72">
-            <path d="M0 234 92 198h202v448L0 691z" />
-            <path d="m280 285 83-42h151v334l-234 44z" />
-            <path d="m1016 286 104-56h134v472l-238-45z" />
-            <path d="m1220 192 76-58h144v605l-220-42z" />
-            <path d="M594 371 669 337h108v186l-183 15z" fill="#202b2f" />
-            <path d="M279 408 510 367M1009 403l245 44M91 388l202-43M1120 366l222 42" fill="none" stroke="#66777c" strokeOpacity=".38" strokeWidth="3" />
-            <path d="M202 648 202 315M1192 700 1192 327M347 611 347 300M1294 719 1294 184" fill="none" stroke="#76878b" strokeOpacity=".44" strokeWidth="5" />
+          <rect width="1440" height="900" fill="#090a0c" />
+          <rect width="1440" height="900" fill="url(#world-glow)" />
+          <path d="M0 900 560 500h320L1440 900Z" fill="url(#world-floor)" />
+          <g fill="none" stroke="#9fb0c6" strokeOpacity=".14">
+            <path d="M720 500 60 900M720 500 280 900M720 500 500 900M720 500 660 900M720 500 780 900M720 500 940 900M720 500 1160 900M720 500 1380 900" />
+            <path d="M610 540h220M540 590h360M450 650h540M340 725h760M200 820h1040" />
           </g>
-          <g fill="#8dbac2" fillOpacity=".38">
-            <path d="M30 280h15v31H30zM65 267h15v31H65zM30 342h15v31H30zM65 329h15v31H65zM30 404h15v31H30zM65 391h15v31H65zM108 255h17v37h-17zM151 255h17v37h-17zM108 327h17v37h-17zM151 327h17v37h-17z" />
-            <path d="M318 322h16v29h-16zM356 315h16v29h-16zM394 308h16v29h-16zM318 380h16v29h-16zM356 373h16v29h-16zM394 366h16v29h-16z" />
-            <path d="M1055 327h16v34h-16zM1094 318h16v34h-16zM1133 309h16v34h-16zM1055 397h16v34h-16zM1094 388h16v34h-16zM1133 379h16v34h-16z" />
-            <path d="M1262 240h18v40h-18zM1307 229h18v40h-18zM1352 218h18v40h-18zM1262 317h18v40h-18zM1307 306h18v40h-18zM1352 295h18v40h-18zM1262 394h18v40h-18zM1307 383h18v40h-18zM1352 372h18v40h-18z" />
+          <path
+            d="M720 900C720 760 700 640 720 500"
+            fill="none"
+            stroke="#cfd6e2"
+            strokeOpacity=".4"
+            strokeWidth="2"
+          />
+          <path
+            d="M720 760C560 720 500 640 540 540M720 640C880 600 960 520 920 430"
+            fill="none"
+            stroke="#9fb0c6"
+            strokeOpacity=".5"
+          />
+          <g fill="#cfd6e2" fillOpacity=".8">
+            <circle cx="720" cy="760" r="5" />
+            <circle cx="720" cy="640" r="5" />
+            <circle cx="720" cy="520" r="4" />
+            <circle cx="620" cy="715" r="3" />
+            <circle cx="548" cy="590" r="3" />
+            <circle cx="860" cy="610" r="3" />
           </g>
-          <g fill="none" stroke="#687b80" strokeOpacity=".58" strokeWidth="2">
-            <path d="M112 490h222l68-53h120M1080 505h183l-76-55h-113M293 574h207M1070 588h206" />
-            <path d="M0 690 720 454M1440 737 720 454" strokeOpacity=".24" />
+          <g
+            fill="#0c0e12"
+            stroke="#c0cad8"
+            strokeOpacity=".22"
+            strokeWidth="1.5"
+          >
+            <rect x="70" y="170" width="300" height="190" rx="10" />
+            <rect x="1080" y="140" width="290" height="190" rx="10" />
+            <rect x="120" y="470" width="260" height="170" rx="10" />
+            <rect x="1050" y="460" width="280" height="170" rx="10" />
           </g>
-          <g fill="none" stroke="#69777b" strokeOpacity=".2" strokeWidth="1">
-            <path d="M720 456 80 900M720 456 250 900M720 456 420 900M720 456 580 900M720 456 850 900M720 456 1030 900M720 456 1210 900M720 456 1400 900" />
-            <path d="M605 500h230M530 548h380M454 602h530M365 664h710M260 734h920M140 814h1160" />
+          <g fill="#8fb7de" fillOpacity=".45">
+            <rect x="100" y="225" width="90" height="7" rx="3" />
+            <rect x="120" y="248" width="150" height="7" rx="3" />
+            <rect x="120" y="271" width="110" height="7" rx="3" />
+            <rect x="100" y="294" width="170" height="7" rx="3" />
           </g>
-          <g fill="#222a2d" stroke="#536064" strokeOpacity=".76">
-            <path d="M90 202h24v431H90zM1320 202h28v431h-28zM356 271h18v294h-18zM1066 271h20v294h-20z" />
-            <path d="M78 201h1276v18H78zM328 270h784v16H328zM214 352h1020v15H214zM61 608h1315v24H61z" />
-            <path d="m94 220 258 132-7 11L89 234zM1340 220 1082 352l7 11 256-129zM368 286 230 352l7 9 145-66zM1078 286l139 66-7 9-145-66z" />
-            <path d="M118 637h33v15h-33zM1285 637h43v15h-43zM374 567h26v13h-26zM1046 567h37v13h-37z" fill="#394448" />
+          <g fill="#b9a7d9" fillOpacity=".4">
+            <rect x="1110" y="225" width="80" height="7" rx="3" />
+            <rect x="1130" y="248" width="170" height="7" rx="3" />
+            <rect x="1130" y="271" width="120" height="7" rx="3" />
+            <rect x="1110" y="294" width="150" height="7" rx="3" />
           </g>
-          <g fill="none" stroke="#8dc8d1" strokeOpacity=".6" strokeWidth="2">
-            <path d="M0 555h472l78 43h224l90-64h231l88 54h257" />
-            <path d="M0 579h383l91 49h191l80-51h281" stroke="#7f969b" strokeOpacity=".44" />
-          </g>
-          <g fill="#c0906c">
-            <circle cx="748" cy="535" r="3" /><circle cx="1213" cy="548" r="3" />
+          <g fill="none" stroke="#7fae95" strokeOpacity=".2" strokeWidth="2">
+            <path d="M560 250h320v270H560z" />
           </g>
         </svg>
       </div>
       <button
         className="world-motion-control"
         type="button"
-        aria-label={paused ? "Resume ambient scene motion" : "Pause ambient scene motion"}
+        aria-label={
+          paused ? "Resume ambient scene motion" : "Pause ambient scene motion"
+        }
         aria-pressed={!paused && !reducedMotion}
         onClick={toggleMotion}
       >
-        <span className={paused ? "world-motion-indicator is-paused" : "world-motion-indicator"} aria-hidden="true" />
-        Scene motion <span>{paused ? "paused" : reducedMotion ? "reduced" : "live"}</span>
+        <span
+          className={
+            paused
+              ? "world-motion-indicator is-paused"
+              : "world-motion-indicator"
+          }
+          aria-hidden="true"
+        />
+        Scene motion{" "}
+        <span>{paused ? "paused" : reducedMotion ? "reduced" : "live"}</span>
       </button>
     </>
   );
