@@ -178,6 +178,7 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
   const machinery: Beam[] = [];
   const weighingStructures: Beam[] = [];
   const indicators: Beam[] = [];
+  const weighingIndicators: Beam[] = [];
   const roofRibs: Array<{ z: number; color: number }> = [];
   const cityMasses: Beam[] = [];
   const cityFacadeBands = Array.from({ length: 4 }, () => [] as Beam[]);
@@ -187,6 +188,11 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
   const baySpacing = 12.2;
   const bayCount = 10;
   const outerLine = 14.2;
+  const weighingStations = [
+    { x: 15, z: -18 },
+    { x: -15, z: -53 },
+  ];
+  const weighingStatus = [0, 0];
 
   // Repeated structural bays share the load like a real long-span facility.
   // The open center remains a navigable corridor; service work happens on
@@ -449,10 +455,7 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
   // Two in-road weighing installations make the city's physical operations
   // legible through their form: recessed decks, load points, sensor portals,
   // and a connected instrument cabinet.
-  for (const station of [
-    { x: -1.2, z: -18 },
-    { x: 1.5, z: -53 },
-  ]) {
+  for (const station of weighingStations) {
     weighingStructures.push(
       {
         x: station.x,
@@ -541,7 +544,7 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
         depth: 0.2,
         color: 0x4a5559,
       });
-      indicators.push({
+      weighingIndicators.push({
         x: station.x + side * 5.45,
         y: 1.25,
         z: station.z + 0.12,
@@ -580,6 +583,9 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
 
     for (const side of [-1, 1]) {
       for (let lane = 0; lane < buildingLanes.length; lane += 1) {
+        const opensToWeighingCourt = (row === 2 && side === 1 && lane === 0)
+          || (row === 4 && side === -1 && lane === 0);
+        if (opensToWeighingCourt) continue;
         const variation = seeded((row + 1) * 211 + lane * 47 + (side + 2) * 89);
         const x = side * (buildingLanes[lane] + (variation - 0.5) * 1.35);
         const width = (lane === 0 ? 9.8 : lane === 1 ? 8.2 : 7.1) + variation * 1.15;
@@ -896,6 +902,83 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
   const cityBandCenters = cityFacadeBands.map((_, band) =>
     13 - (band * 2 + 0.5) * 15.8,
   );
+  const indicatorOff = new THREE.Color(0x425055);
+  const indicatorMeasuring = new THREE.Color(0xd0a077);
+  const indicatorSending = new THREE.Color(0xb4e9ed);
+  const packetTransit = new THREE.Color(0xa6dbe1);
+  const packetResponse = new THREE.Color(0xd6aa83);
+
+  const cargoMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0x101719,
+    emissiveIntensity: 0.16,
+    metalness: 0.32,
+    roughness: 0.62,
+  });
+  const cargoBodies = new THREE.InstancedMesh(box, cargoMaterial, weighingStations.length);
+  const cargoPallets = new THREE.InstancedMesh(box, deckMaterial, weighingStations.length);
+  const cargoStraps = new THREE.InstancedMesh(box, facadeMaterial, weighingStations.length * 2);
+  const cargoMatrix = new THREE.Matrix4();
+  const cargoPosition = new THREE.Vector3();
+  const cargoScale = new THREE.Vector3();
+  const cargoRotation = new THREE.Quaternion();
+  cargoBodies.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  cargoPallets.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  cargoStraps.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+  weighingStations.forEach((station, index) => {
+    const approachZ = station.z + 9;
+    cargoPosition.set(station.x, -1.95, approachZ);
+    cargoScale.set(3.55, 0.16, 2.95);
+    cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
+    cargoPallets.setMatrixAt(index, cargoMatrix);
+    cargoPallets.setColorAt(index, new THREE.Color(index === 0 ? 0x566267 : 0x616c70));
+
+    cargoPosition.set(station.x, -1.1, approachZ);
+    cargoScale.set(2.65, 1.48, 2.3);
+    cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
+    cargoBodies.setMatrixAt(index, cargoMatrix);
+    cargoBodies.setColorAt(index, new THREE.Color(index === 0 ? 0x657175 : 0x58676b));
+
+    for (let strap = 0; strap < 2; strap += 1) {
+      cargoPosition.set(station.x + (strap === 0 ? -0.72 : 0.72), -1.1, approachZ);
+      cargoScale.set(0.085, 1.52, 2.34);
+      cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
+      cargoStraps.setMatrixAt(index * 2 + strap, cargoMatrix);
+      cargoStraps.setColorAt(index * 2 + strap, new THREE.Color(0xa1aeb0));
+    }
+  });
+  cargoPallets.instanceMatrix.needsUpdate = true;
+  cargoBodies.instanceMatrix.needsUpdate = true;
+  cargoStraps.instanceMatrix.needsUpdate = true;
+  if (cargoPallets.instanceColor) cargoPallets.instanceColor.needsUpdate = true;
+  if (cargoBodies.instanceColor) cargoBodies.instanceColor.needsUpdate = true;
+  if (cargoStraps.instanceColor) cargoStraps.instanceColor.needsUpdate = true;
+  scene.add(cargoPallets, cargoBodies, cargoStraps);
+
+  const weighIndicatorMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    toneMapped: false,
+  });
+  const weighIndicatorMesh = new THREE.InstancedMesh(
+    box,
+    weighIndicatorMaterial,
+    weighingIndicators.length,
+  );
+  const weighIndicatorMatrix = new THREE.Matrix4();
+  const weighIndicatorPosition = new THREE.Vector3();
+  const weighIndicatorScale = new THREE.Vector3();
+  weighIndicatorMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  weighingIndicators.forEach((indicator, index) => {
+    weighIndicatorPosition.set(indicator.x, indicator.y, indicator.z);
+    weighIndicatorScale.set(indicator.width, indicator.height, indicator.depth);
+    weighIndicatorMatrix.compose(weighIndicatorPosition, cargoRotation, weighIndicatorScale);
+    weighIndicatorMesh.setMatrixAt(index, weighIndicatorMatrix);
+    weighIndicatorMesh.setColorAt(index, new THREE.Color(0x425055));
+  });
+  weighIndicatorMesh.instanceMatrix.needsUpdate = true;
+  if (weighIndicatorMesh.instanceColor) weighIndicatorMesh.instanceColor.needsUpdate = true;
+  scene.add(weighIndicatorMesh);
 
   for (const rib of roofRibs) {
     const points = [
@@ -1001,6 +1084,24 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
       routeMaterials[route],
     );
     scene.add(signalPath);
+  }
+
+  const weighingLinkMaterial = new THREE.MeshBasicMaterial({
+    color: 0x80c4ce,
+    transparent: true,
+    opacity: 0.48,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+  });
+  for (const station of weighingStations) {
+    const side = Math.sign(station.x);
+    const link = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(side * 4.6, -2.12, station.z - 0.8),
+      new THREE.Vector3(side * 7.2, -2.1, station.z - 0.8),
+      new THREE.Vector3(side * 10.4, -1.92, station.z),
+      new THREE.Vector3(station.x, -1.92, station.z),
+    ]);
+    scene.add(new THREE.Mesh(new THREE.TubeGeometry(link, 72, 0.028, 5, false), weighingLinkMaterial));
   }
 
   const signalPacketCount = 9;
@@ -1213,9 +1314,64 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
       pointer.x += (pointer.targetX - pointer.x) * 0.035;
       pointer.y += (pointer.targetY - pointer.y) * 0.035;
 
+      weighingStations.forEach((station, index) => {
+        const phase = (elapsed * 0.055 + index * 0.5) % 1;
+        let cargoZ = station.z + 9;
+        let visible = true;
+        let status = 0;
+        const smooth = (value: number) => value * value * (3 - 2 * value);
+
+        if (phase < 0.22) {
+          cargoZ -= smooth(phase / 0.22) * 6;
+        } else if (phase < 0.4) {
+          cargoZ = station.z + 3 - smooth((phase - 0.22) / 0.18) * 3;
+        } else if (phase < 0.62) {
+          cargoZ = station.z;
+          status = 1;
+        } else if (phase < 0.82) {
+          cargoZ = station.z - smooth((phase - 0.62) / 0.2) * 11;
+          status = 2;
+        } else {
+          cargoZ = station.z - 11;
+          visible = false;
+        }
+        weighingStatus[index] = status;
+
+        const visibleScale = visible ? 1 : 0.0001;
+        cargoScale.set(3.55 * visibleScale, 0.16 * visibleScale, 2.95 * visibleScale);
+        cargoPosition.set(station.x, -1.95, cargoZ);
+        cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
+        cargoPallets.setMatrixAt(index, cargoMatrix);
+
+        cargoScale.set(2.65 * visibleScale, 1.48 * visibleScale, 2.3 * visibleScale);
+        cargoPosition.set(station.x, -1.1, cargoZ);
+        cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
+        cargoBodies.setMatrixAt(index, cargoMatrix);
+
+        for (let strap = 0; strap < 2; strap += 1) {
+          cargoScale.set(0.085 * visibleScale, 1.52 * visibleScale, 2.34 * visibleScale);
+          cargoPosition.set(station.x + (strap === 0 ? -0.72 : 0.72), -1.1, cargoZ);
+          cargoMatrix.compose(cargoPosition, cargoRotation, cargoScale);
+          cargoStraps.setMatrixAt(index * 2 + strap, cargoMatrix);
+        }
+
+        const statusColor = status === 1
+          ? indicatorMeasuring
+          : status === 2
+            ? indicatorSending
+            : indicatorOff;
+        weighIndicatorMesh.setColorAt(index * 2, statusColor);
+        weighIndicatorMesh.setColorAt(index * 2 + 1, statusColor);
+      });
+      cargoPallets.instanceMatrix.needsUpdate = true;
+      cargoBodies.instanceMatrix.needsUpdate = true;
+      cargoStraps.instanceMatrix.needsUpdate = true;
+      if (weighIndicatorMesh.instanceColor) weighIndicatorMesh.instanceColor.needsUpdate = true;
+
       cityWindowMaterials.forEach((material, band) => {
         const pulse = 0.5 + 0.5 * Math.sin(elapsed * 0.34 - band * 1.42);
-        material.emissiveIntensity = 0.2 + pulse * 0.46;
+        const nearbyStation = band === 1 ? weighingStatus[0] : band === 2 ? weighingStatus[1] : 0;
+        material.emissiveIntensity = 0.16 + pulse * 0.22 + nearbyStation * 0.19;
       });
 
       const rollerSpeed = elapsed * 0.92;
@@ -1238,13 +1394,17 @@ function createWorld(THREE: Three, container: HTMLDivElement, motion: MotionStat
           : side * (0.4 + clamp(progress * 5, 0, 1) * 4.6 + sway * 0.28);
         const y = -1.85 + emergence * (2.25 + Math.sin(progress * Math.PI * 2) * 0.8);
         const z = 32 - progress * 114;
-        const pulse = 0.88 + Math.sin(elapsed * 1.8 + signalPacketPhases[packet] * Math.PI * 2) * 0.12;
+        const transmitting = weighingStatus[packet % weighingStatus.length] === 2;
+        const pulse = (0.88 + Math.sin(elapsed * 1.8 + signalPacketPhases[packet] * Math.PI * 2) * 0.12)
+          * (transmitting ? 1.32 : 1);
         signalPacketPosition.set(x, y, z);
         signalPacketScale.setScalar(pulse);
         signalPacketMatrix.compose(signalPacketPosition, signalPacketRotation, signalPacketScale);
         signalPackets.setMatrixAt(packet, signalPacketMatrix);
+        signalPackets.setColorAt(packet, transmitting ? packetResponse : packetTransit);
       }
       signalPackets.instanceMatrix.needsUpdate = true;
+      if (signalPackets.instanceColor) signalPackets.instanceColor.needsUpdate = true;
     }
     updateCamera(time, snap);
     updateCityLevelOfDetail();

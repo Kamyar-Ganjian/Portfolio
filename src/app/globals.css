@@ -900,7 +900,7 @@ body::before { opacity: .045; }
 .erp-domain-list li { min-height: 84px; padding: 12px; color: #e0e5e5; font-size: 11px; }
 .erp-domain-list li > span { color: var(--lime); font-size: 10px; }
 
-.integration-section { background: rgba(9, 14, 17, .82); color: var(--ink); border-block: 1px solid rgba(191, 210, 213, .22); }
+.integration-section { grid-template-columns: minmax(150px, 180px) minmax(0, 1fr) minmax(270px, 300px); gap: clamp(28px, 4vw, 56px); background: rgba(9, 14, 17, .82); color: var(--ink); border-block: 1px solid rgba(191, 210, 213, .22); padding-inline: max(48px, calc((100vw - 1200px) / 2)); }
 .integration-count { border-color: rgba(155, 211, 219, .55); background: rgba(155, 211, 219, .035); }
 .integration-count > span { color: #d1dcde; font-size: 12px; }
 .integration-count strong { color: var(--lime); font-size: 78px; }
@@ -912,7 +912,7 @@ body::before { opacity: .045; }
 .integration-tags { gap: 8px; margin-top: 21px; }
 .integration-tags li { border-color: rgba(155, 211, 219, .36); padding: 7px 10px; color: #e1e8e9; font-size: 12px; }
 .integration-note { border-color: rgba(193, 211, 214, .35); }
-.integration-note p { color: #f0f3f3; font-size: 25px; line-height: 1.24; }
+.integration-note p { color: #f0f3f3; font-size: 23px; line-height: 1.3; }
 .integration-note cite { color: #bfcbcd; font-size: 10px; }
 .integration-note cite span { color: var(--lime); }
 
@@ -991,6 +991,9 @@ body::before { opacity: .045; }
   .section-wrap { width: min(100% - 72px, 1200px); }
   .hero-layout { width: min(100% - 72px, 1200px); }
   .hero h1 { font-size: clamp(52px, 6.5vw, 76px); }
+  .integration-section { grid-template-columns: minmax(130px, .36fr) minmax(0, 1fr); gap: 30px 5%; padding-inline: 36px; }
+  .integration-count { width: min(100%, 170px); grid-row: 1 / 3; }
+  .integration-note { grid-column: 2; max-width: 330px; justify-self: end; }
 }
 
 @media (max-width: 760px) {
@@ -1034,7 +1037,10 @@ body::before { opacity: .045; }
   .architecture-inner { padding-block: 78px; }
   .architecture-inner, .direction-inner { grid-template-columns: 1fr; gap: 32px; }
   .erp-domain-list li { font-size: 10px; }
-  .integration-section { background: rgba(9, 14, 17, .88); padding: 74px 22px; }
+  .integration-section { grid-template-columns: 1fr; gap: 27px; background: rgba(9, 14, 17, .88); padding: 74px 22px; }
+  .integration-copy { grid-row: 1; }
+  .integration-count { width: 137px; grid-row: 2; }
+  .integration-note { grid-column: 1; max-width: 300px; justify-self: end; }
   .integration-copy > p:not(.section-kicker) { font-size: 15px; }
   .packages-section { padding-block: 78px; }
   .gallery-section { padding-block: 76px 62px; }
