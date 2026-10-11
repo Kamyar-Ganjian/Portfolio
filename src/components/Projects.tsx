@@ -49,10 +49,10 @@ const projects: Project[] = [
     name: "Portfolio",
     descriptor: "Independent project · Ongoing",
     description:
-      "This portfolio is an engineering project in its own right: a clear account of production systems work, independent products, and the path from frontend architecture toward AI.",
+      "A portfolio for making complex engineering work tangible — connecting production applications, shared architecture, industrial integrations, independent products, and a developing focus on AI.",
     contribution:
-      "Built with the Next.js App Router, TypeScript, and a custom responsive design system — with server-rendered content and deliberately lightweight motion.",
-    stack: ["Next.js 16", "React 19", "TypeScript", "CSS"],
+      "Server-rendered portfolio content sits above a custom Three.js environment that shifts from production infrastructure toward an emerging intelligence field as you explore.",
+    stack: ["Next.js 16", "React 19", "TypeScript", "Three.js", "WebGL / GLSL"],
     href: "https://github.com/Kamyar-Ganjian/Portfolio",
     linkLabel: "View the source",
     visual: "folio",

@@ -13,10 +13,12 @@ import Education from "@/components/Education";
 import Direction from "@/components/Direction";
 import Courses from "@/components/Courses";
 import Contact from "@/components/Contact";
+import ComputationalWorld from "@/components/ComputationalWorld";
 
 export default function Home() {
   return (
     <>
+      <ComputationalWorld />
       <Hero />
       <Metrics />
       <About />
