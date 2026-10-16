@@ -14,24 +14,24 @@ export default function OpenGraphImage() {
           justifyContent: "space-between",
           width: "100%",
           height: "100%",
-          background: "#f7f9fc",
-          color: "#101828",
+          background: "#000000",
+          color: "#ededed",
           padding: "72px 82px",
           fontFamily: "Arial, sans-serif",
-          border: "18px solid #e1e7ef",
+          border: "18px solid #171717",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 24, color: "#1d4ed8" }}>
-          <span style={{ width: 38, height: 2, background: "#2563eb" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 24, color: "#3291ff" }}>
+          <span style={{ width: 38, height: 2, background: "#0070f3" }} />
           SOFTWARE ENGINEERING · BABOL, IRAN
         </div>
         <div style={{ display: "flex", flexDirection: "column", fontSize: 76, fontWeight: 600, lineHeight: 1.08, letterSpacing: "-0.04em" }}>
           <span>Kamyar Ganjian</span>
-          <span style={{ color: "#2563eb" }}>
+          <span style={{ color: "#0070f3" }}>
             Software Engineer
           </span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Arial, sans-serif", fontSize: 23, color: "#536176" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Arial, sans-serif", fontSize: 23, color: "#a1a1aa" }}>
           <span>Frontend · Full-stack · AI Engineering</span>
           <span>kamyar-ganjian-portfolio.vercel.app</span>
         </div>

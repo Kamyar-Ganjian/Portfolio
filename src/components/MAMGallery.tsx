@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { galleryImages } from "@/data/portfolio";
+import GalleryControls from "@/components/GalleryControls";
 
 export default function MAMGallery() {
   return (
@@ -24,23 +25,42 @@ export default function MAMGallery() {
         </p>
       </div>
 
-      <div className="gallery-grid">
-        {galleryImages.map((image, index) => (
-          <figure className="gallery-item" key={image.src}>
-            <div className="gallery-photo">
-              <Image
-                src={image.src}
-                alt={image.alt}
-                fill
-                sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
-              />
-            </div>
-            <figcaption>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              {image.caption}
-            </figcaption>
-          </figure>
-        ))}
+      <div className="gallery-slider-toolbar">
+        <GalleryControls />
+      </div>
+
+      <div
+        className="gallery-slider"
+        id="workplace-gallery"
+        role="region"
+        aria-label="Photo gallery: memories from working at MAM"
+        tabIndex={0}
+      >
+        <div className="gallery-track">
+          {galleryImages.map((image, index) => (
+            <figure
+              className="gallery-item"
+              key={image.src}
+              data-gallery-slide
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${index + 1} of ${galleryImages.length}: ${image.caption}`}
+            >
+              <div className="gallery-photo">
+                <Image
+                  src={image.src}
+                  alt={image.alt}
+                  fill
+                  sizes="(max-width: 760px) 78vw, 620px"
+                />
+              </div>
+              <figcaption>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                {image.caption}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       </div>
     </section>
   );

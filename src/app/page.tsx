@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { site } from "@/data/portfolio";
 import AboutSection from "@/components/AboutSection";
+import BlogsSection from "@/components/BlogsSection";
 import ProjectsSection from "@/components/ProjectsSection";
 import ContactSection from "@/components/ContactSection";
 import ExperienceSection from "@/components/ExperienceSection";
@@ -89,6 +90,7 @@ export default function Home() {
       <AboutSection />
       <ExperienceSection />
       <SkillsSection />
+      <BlogsSection />
       <ContactSection />
     </>
   );
