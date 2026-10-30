@@ -1,0 +1,3 @@
+import {getPosts,xml} from "@/lib/blog";
+import {profile as p} from "@/data/site";
+export function GET(){return new Response(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>${xml(p.name)} — Blog</title><link>${p.url}/blog</link><description>Engineering notes by ${xml(p.name)}</description><atom:link href="${p.url}/rss.xml" rel="self" type="application/rss+xml"/>${getPosts().map(post=>`<item><title>${xml(post.title)}</title><description>${xml(post.description)}</description><link>${p.url}/blog/${post.slug}</link><guid>${p.url}/blog/${post.slug}</guid><pubDate>${new Date(post.date).toUTCString()}</pubDate></item>`).join("")}</channel></rss>`,{headers:{"Content-Type":"application/rss+xml; charset=utf-8"}})}

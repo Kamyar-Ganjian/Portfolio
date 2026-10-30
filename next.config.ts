@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
-
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Use the compiler API: this environment adds notices to spawned CLI output.
+  experimental: { useTypeScriptCli: false },
 };
-
 export default nextConfig;

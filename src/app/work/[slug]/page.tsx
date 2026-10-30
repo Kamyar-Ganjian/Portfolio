@@ -1,0 +1,6 @@
+import Link from "next/link";
+import {notFound} from "next/navigation";
+import {projects} from "@/data/site";
+export function generateStaticParams(){return projects.map(p=>({slug:p.slug}))}
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const p=projects.find(p=>p.slug===slug);return p?{title:p.title,description:p.description,alternates:{canonical:`/work/${slug}`},openGraph:{title:p.title,description:p.description,url:`/work/${slug}`}}:{}}
+export default async function Project({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const p=projects.find(p=>p.slug===slug);if(!p)notFound();return <article className="article page"><Link href="/work">← All work</Link><header className="article-header"><p className="eyebrow">{p.category}</p><h1>{p.title}</h1><p className="lede">{p.description}</p><p className="tech">{p.technologies.join(" / ")}</p><div className="links">{p.live&&<a href={p.live}>Live demo ↗</a>}{p.source&&<a href={p.source}>Source code ↗</a>}</div></header><div className="prose"><h2>Context</h2><p>{p.context}</p><h2>My role</h2><p>{p.contribution}</p><h2>Implementation</h2><p>{p.implementation}</p><h2>Decisions & tradeoffs</h2><p>{p.decision}</p><h2>Result & limitations</h2><p>{p.result}</p></div></article>}

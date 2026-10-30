@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Kamyar Ganjian — Software Engineer & Full-Stack Developer";
+export const alt = "Kamyar Ganjian — Full-Stack Engineer";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -14,11 +14,11 @@ export default function OpenGraphImage() {
           justifyContent: "space-between",
           width: "100%",
           height: "100%",
-          background: "#000000",
-          color: "#ededed",
+          background: "#f8f7f3",
+          color: "#202322",
           padding: "72px 82px",
           fontFamily: "Arial, sans-serif",
-          border: "18px solid #171717",
+          border: "18px solid #d9dcd4",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 24, color: "#3291ff" }}>
@@ -28,11 +28,11 @@ export default function OpenGraphImage() {
         <div style={{ display: "flex", flexDirection: "column", fontSize: 76, fontWeight: 600, lineHeight: 1.08, letterSpacing: "-0.04em" }}>
           <span>Kamyar Ganjian</span>
           <span style={{ color: "#0070f3" }}>
-            Software Engineer
+            Full-Stack Engineer
           </span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Arial, sans-serif", fontSize: 23, color: "#a1a1aa" }}>
-          <span>Frontend · Full-stack · AI Engineering</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Arial, sans-serif", fontSize: 23, color: "#606560" }}>
+          <span>Interfaces · APIs · Databases</span>
           <span>kamyar-ganjian-portfolio.vercel.app</span>
         </div>
       </div>

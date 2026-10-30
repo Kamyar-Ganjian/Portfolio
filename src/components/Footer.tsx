@@ -1,16 +1,2 @@
-import { site } from "@/data/portfolio";
-
-export default function Footer() {
-  return (
-    <footer className="site-footer">
-      <div className="page-width footer-inner">
-        <p>© {new Date().getFullYear()} {site.name}</p>
-        <nav aria-label="Professional profiles">
-          <a href={site.github} target="_blank" rel="noreferrer">GitHub</a>
-          <a href={site.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
-        </nav>
-        <a className="back-to-top" href="#top">Back to top ↑</a>
-      </div>
-    </footer>
-  );
-}
+import { profile as p } from "@/data/site";
+export default function Footer(){return <footer className="page-width" id="contact"><div><p className="eyebrow">LET’S TALK</p><a className="contact-email" href={`mailto:${p.email}`}>{p.email}</a><p>Babol, Iran · Open to relocation, particularly Europe / Germany.</p></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Kamyar Ganjian</span><div className="links"><a href={p.github}>GitHub ↗</a><a href={p.linkedin}>LinkedIn ↗</a><a href={p.resume} download>Résumé (PDF) ↓</a><a href="/rss.xml">RSS</a></div></div></footer>}
