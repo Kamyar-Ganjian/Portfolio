@@ -24,7 +24,7 @@ export default function Home() {
           <a className="button secondary" href={`mailto:${p.email}`}>Email me</a>
         </div>
       </div>
-      <Image className="hero-portrait" src={portrait} alt="Kamyar Ganjian" width={280} height={320} sizes="(max-width: 600px) 88px, (max-width: 900px) 220px, 280px" preload />
+      <Image className="hero-portrait" src={portrait} alt="Kamyar Ganjian" width={280} height={280} sizes="(max-width: 600px) 88px, (max-width: 900px) 220px, 280px" preload />
     </section>
 
     <section id="projects" className="section">
