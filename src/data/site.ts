@@ -1,7 +1,7 @@
 export const profile = {
  name: "Kamyar Ganjian", role: "Full-Stack Engineer", location: "Babol, Iran",
  email: "kamyarganjian@gmail.com", github: "https://github.com/Kamyar-Ganjian",
- linkedin: "https://linkedin.com/in/kamy-ganj", resume: "/files/Kamyar_Ganjian_Frontend_engineer_CV.pdf",
+ linkedin: "https://www.linkedin.com/in/kamy-ganj-668201435/", resume: "/files/Kamyar_Ganjian_Frontend_engineer_CV.pdf",
  url: "https://kamyar-ganjian-portfolio.vercel.app",
  description: "I build practical web applications, from interfaces to APIs and databases."
 } as const;
@@ -12,3 +12,14 @@ export const projects: Project[] = [
  {slug:"github-city",title:"GitHub City",category:"Personal project",description:"Turning GitHub repositories into explorable cities.",contribution:"Independently built the repository visualization project.",technologies:["Next.js","TypeScript","Three.js"],context:"An alternative way to explore repositories through a city metaphor.",implementation:"GitHub City presents GitHub repositories as explorable cities. The public demo and source are linked below.",decision:"A spatial representation offers a different perspective on repository exploration. The source is the reference for implementation details.",result:"Available as a live demo and public repository. No usage or performance claims are made.",source:"https://github.com/Kamyar-Ganjian/github-city",live:"https://github-city-wine.vercel.app/"},
  {slug:"industrial-systems",title:"Connecting industrial weighing systems",category:"Professional · MAM Broiler Integration",description:"Bridging production equipment and ERP software across ten weighing systems.",contribution:"Device communication, encoding/decoding logic, and on-site troubleshooting.",technologies:["Device protocols","ERP integration"],context:"Industrial operations depend on reliable communication between physical weighing equipment and the ERP.",implementation:"I integrated ten industrial weighing systems, implementing device-specific communication and encoding/decoding logic, and troubleshot production hardware–software issues on site.",decision:"Device-specific behavior requires investigation at the hardware–software boundary, including work in the physical operating environment.",result:"Ten weighing systems integrated. Device protocols, internal source, and operational records remain confidential."}
 ];
+
+export const professionalExperience = {
+ role: "Frontend Engineer",
+ company: "MAM Broiler Integration",
+ dates: "September 2024–present",
+ highlights: [
+  { title: "Independent application releases", description: "Migrated a monolithic frontend to Next.js Multi-Zones and multiple repositories, enabling independent builds and deployments across 25+ applications. Reduced build and deployment scope by 96%." },
+  { title: "Shared tooling across the ERP", description: "Developed six internal npm packages for components, layouts, icons, and utilities, adopted across 20+ applications by a five-developer frontend team." },
+  { title: "Industrial hardware integration", description: "Integrated ten weighing systems with device-specific communication and encoding/decoding logic. Resolved production hardware–software issues, including 60 days of on-site troubleshooting at a slaughterhouse and feed factory." },
+ ],
+} as const;

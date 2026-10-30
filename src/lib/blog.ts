@@ -7,6 +7,7 @@ export type Post = {slug:string;title:string;description:string;date:string;upda
 export function parsePost(filename:string,source:string):Post {
  const fail=(message:string):never=>{throw new Error(`Blog ${filename}: ${message}`)};
  const slug=filename.replace(/\.md$/,"");if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))fail("use a lowercase, hyphenated .md filename");
+ if(slug==="feed")fail("feed is reserved for the RSS help page; choose another filename");
  const {data,content}=matter(source);
  for(const key of ["title","description"])if(typeof data[key]!=="string"||!data[key].trim())fail(`${key} must be a non-empty string`);
  const date=(key:string,required:boolean)=>{const value=data[key];if(value===undefined&&!required)return undefined;if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value))||new Date(value).toISOString().slice(0,10)!==value)fail(`${key} must be a quoted valid YYYY-MM-DD date`);return value as string};

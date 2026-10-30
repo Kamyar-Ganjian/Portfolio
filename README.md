@@ -17,7 +17,7 @@ Deploy with a Next.js-compatible host (the existing production URL is on Vercel)
 
 ## Publish a blog post
 
-1. Add `content/blog/your-post-slug.md`. The filename becomes `/blog/your-post-slug`; use lowercase letters, numbers, and hyphens.
+1. Add `content/blog/your-post-slug.md`. The filename becomes `/blog/your-post-slug`; use lowercase letters, numbers, and hyphens. `feed.md` is reserved for the RSS explanation page.
 2. Start with this frontmatter (quote dates):
 
 ```yaml
@@ -41,7 +41,9 @@ The listing is newest-first. Reading time uses 220 words/minute. Duplicate headi
 ## Edit portfolio content
 
 - Profile, role, links, email, production URL, project copy, and project links: `src/data/site.ts`.
-- Employment, education, grouped skills: `src/app/about/page.tsx`.
+- Professional experience highlights: `professionalExperience` in `src/data/site.ts` (shared by the homepage and About page).
+- Education and grouped skills: `src/app/about/page.tsx`.
+- Homepage portrait: `public/images/profile-2.png`.
 - Homepage supporting copy: `src/app/page.tsx`.
 - Résumé: replace `public/files/Kamyar_Ganjian_Frontend_engineer_CV.pdf`, or change `profile.resume`. The supplied PDF is preserved, including its original title and contact information.
 - Design tokens, spacing, typography, responsive rules: `src/app/globals.css`.
